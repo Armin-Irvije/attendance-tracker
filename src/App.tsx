@@ -1,7 +1,7 @@
 // src/App.tsx
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './login';
-import Dashboard from './Dashboard';
+import Dashboard from './dashboard';
 
 function App() {
   // Simple auth check (replace with proper auth context in production)

@@ -3,7 +3,9 @@ import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Toaster } from "sonner";
 import { CalendarIcon, ChevronRightIcon, ClockIcon, BarChartIcon, PercentIcon, UserIcon, PlusIcon } from "lucide-react";
+import { AddClientModal } from './components/ui/AddClientModel';
 import './styles/dashboard.css';
 
 // Sample data structure (replace with actual API calls)
@@ -19,12 +21,15 @@ interface Client {
   id: string;
   name: string;
   initials: string;
+  email?: string;
+  phone?: string;
   image?: string;
 }
 
 export default function Dashboard() {
   const [currentClient, setCurrentClient] = useState<Client | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
+  const [isAddClientModalOpen, setIsAddClientModalOpen] = useState(false);
   const [summary, setSummary] = useState<AttendanceSummary>({
     month: 'May',
     daysScheduled: 22,
@@ -42,9 +47,9 @@ export default function Dashboard() {
       await new Promise(resolve => setTimeout(resolve, 800));
       
       const mockClients = [
-        { id: '1', name: 'John Doe', initials: 'JD', image: '' },
-        { id: '2', name: 'Sarah Smith', initials: 'SS', image: '' },
-        { id: '3', name: 'Miguel Rodriguez', initials: 'MR', image: '' },
+        { id: '1', name: 'John Doe', initials: 'JD', email: 'john@example.com', phone: '(555) 123-4567', image: '' },
+        { id: '2', name: 'Sarah Smith', initials: 'SS', email: 'sarah@example.com', phone: '(555) 987-6543', image: '' },
+        { id: '3', name: 'Miguel Rodriguez', initials: 'MR', email: 'miguel@example.com', phone: '(555) 456-7890', image: '' },
       ];
       
       setClients(mockClients);
@@ -59,6 +64,26 @@ export default function Dashboard() {
   const handleClientChange = (client: Client) => {
     setCurrentClient(client);
     // In a real app, you'd fetch data for this specific client here
+  };
+
+  // Handle opening add client modal
+  const handleAddClientClick = () => {
+    setIsAddClientModalOpen(true);
+  };
+
+  // Handle adding a new client
+  const handleAddClient = (newClient: Client) => {
+    setClients(prevClients => [...prevClients, newClient]);
+    setCurrentClient(newClient); // Automatically switch to the new client
+    
+    // In a real app, you would make an API call to save the client
+    console.log('New client added:', newClient);
+    
+    // Update stats to reflect new client
+    setSummary(prev => ({
+      ...prev,
+      // Simple update to reflect new client in Active Clients count
+    }));
   };
 
   // Generate calendar days for the current month (weekdays only)
@@ -106,6 +131,8 @@ export default function Dashboard() {
 
   return (
     <div className="dashboard-container">
+      <Toaster />
+      
       <header className="dashboard-header">
         <h1 className="dashboard-title">Attendance Dashboard</h1>
         <p className="dashboard-subtitle">Track and manage client attendance</p>
@@ -125,13 +152,19 @@ export default function Dashboard() {
               <AvatarFallback>{client.initials}</AvatarFallback>
             </Avatar>
           ))}
-          <Avatar className="add-client-avatar">
+          <Avatar 
+            className="add-client-avatar" 
+            onClick={handleAddClientClick}
+          >
             <AvatarFallback>
               <PlusIcon className="h-4 w-4" />
             </AvatarFallback>
           </Avatar>
         </div>
-        <div className="client-name">{currentClient?.name}</div>
+        <div className="client-name">
+          {currentClient?.name}
+          {currentClient?.email && <span className="client-email"> • {currentClient.email}</span>}
+        </div>
       </div>
 
       {/* Summary stats */}
@@ -235,6 +268,13 @@ export default function Dashboard() {
           Generate Report
         </Button>
       </div>
+
+      {/* Add Client Modal */}
+      <AddClientModal 
+        isOpen={isAddClientModalOpen}
+        onClose={() => setIsAddClientModalOpen(false)}
+        onAddClient={handleAddClient}
+      />
     </div>
   );
 }
