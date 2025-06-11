@@ -5,8 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Toaster } from "sonner";
 import { CalendarIcon, ChevronRightIcon, ClockIcon, BarChartIcon, PercentIcon, UserIcon, PlusIcon } from "lucide-react";
-import { AddClientModal } from './components/ui/AddClientModel';
 import './styles/dashboard.css';
+import { useNavigate } from 'react-router-dom';
 
 // Sample data structure (replace with actual API calls)
 interface AttendanceSummary {
@@ -24,12 +24,13 @@ interface Client {
   email?: string;
   phone?: string;
   image?: string;
+  schedule: Record<string, boolean>;
 }
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const [currentClient, setCurrentClient] = useState<Client | null>(null);
   const [clients, setClients] = useState<Client[]>([]);
-  const [isAddClientModalOpen, setIsAddClientModalOpen] = useState(false);
   const [summary, setSummary] = useState<AttendanceSummary>({
     month: 'May',
     daysScheduled: 22,
@@ -39,36 +40,37 @@ export default function Dashboard() {
   });
   const [isLoading, setIsLoading] = useState(true);
 
-  // Simulated data fetch
+  // Load clients from localStorage
   useEffect(() => {
-    // Simulate API call to fetch clients
-    const fetchData = async () => {
-      // This would be replaced with actual API calls
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
-      const mockClients = [
-        { id: '1', name: 'John Doe', initials: 'JD', email: 'john@example.com', phone: '(555) 123-4567', image: '' },
-        { id: '2', name: 'Sarah Smith', initials: 'SS', email: 'sarah@example.com', phone: '(555) 987-6543', image: '' },
-        { id: '3', name: 'Miguel Rodriguez', initials: 'MR', email: 'miguel@example.com', phone: '(555) 456-7890', image: '' },
-      ];
-      
-      setClients(mockClients);
-      setCurrentClient(mockClients[0]);
+    const loadClients = () => {
+      const savedClients = JSON.parse(localStorage.getItem('clients') || '[]');
+      setClients(savedClients);
+      if (savedClients.length > 0) {
+        setCurrentClient(savedClients[0]);
+      }
       setIsLoading(false);
     };
-    
-    fetchData();
+
+    loadClients();
   }, []);
 
   // Handle client change
   const handleClientChange = (client: Client) => {
     setCurrentClient(client);
-    // In a real app, you'd fetch data for this specific client here
+    // Update summary based on selected client's schedule
+    const scheduledDays = Object.values(client.schedule).filter(Boolean).length;
+    setSummary(prev => ({
+      ...prev,
+      daysScheduled: scheduledDays * 4, // Assuming 4 weeks in a month
+      daysAttended: Math.floor(scheduledDays * 4 * 0.8), // Example: 80% attendance
+      attendancePercentage: 80,
+      totalHours: scheduledDays * 4 * 3 // Example: 3 hours per day
+    }));
   };
 
-  // Handle opening add client modal
+  // Handle opening add client page
   const handleAddClientClick = () => {
-    setIsAddClientModalOpen(true);
+    navigate('/add-client');
   };
 
   // Handle adding a new client
@@ -268,13 +270,6 @@ export default function Dashboard() {
           Generate Report
         </Button>
       </div>
-
-      {/* Add Client Modal */}
-      <AddClientModal 
-        isOpen={isAddClientModalOpen}
-        onClose={() => setIsAddClientModalOpen(false)}
-        onAddClient={handleAddClient}
-      />
     </div>
   );
 }

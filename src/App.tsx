@@ -1,27 +1,16 @@
 // src/App.tsx
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import Login from './login';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import Dashboard from './dashboard';
+import AddClient from './pages/AddClient';
 
-function App() {
-  // Simple auth check (replace with proper auth context in production)
-  const isAuthenticated = () => {
-    return localStorage.getItem('isAuthenticated') === 'true' || 
-           sessionStorage.getItem('isAuthenticated') === 'true';
-  };
-
+export default function App() {
   return (
-    <BrowserRouter>
+    <Router>
       <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route 
-          path="/dashboard" 
-          element={isAuthenticated() ? <Dashboard /> : <Navigate to="/login" />} 
-        />
-        <Route path="/" element={<Navigate to="/dashboard" />} />
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/add-client" element={<AddClient />} />
       </Routes>
-    </BrowserRouter>
+    </Router>
   );
 }
-
-export default App;
