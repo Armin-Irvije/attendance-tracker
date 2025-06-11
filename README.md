@@ -44,7 +44,7 @@ Attendance Tracker is a professional web portal designed to help service provide
 attendance-tracker/
 ├── src/
 │   ├── assets/            # Static assets (images, icons)
-│   ├── components/        # shadcn/ui components
+│   ├── components/ui        # shadcn/ui components
 │   │   
 │   ├── lib/               # Utility functions and shared code
 │   ├──                    # Main page components
