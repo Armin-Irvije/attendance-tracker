@@ -1,6 +1,5 @@
 // src/pages/Dashboard.tsx
 import { useState, useEffect } from 'react';
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Toaster } from "sonner";
@@ -25,39 +24,7 @@ interface Client {
   };
 }
 
-// Add this sample data
-const sampleClients: Client[] = [
-  {
-    id: '1',
-    name: 'John Doe',
-    initials: 'JD',
-    email: 'john@example.com',
-    schedule: {
-      'monday': true,
-      'wednesday': true,
-      'friday': true
-    },
-    attendance: {
-      '2024-03-15': { attended: true, hours: 3 },
-      '2024-03-18': { attended: true, hours: 2 },
-      '2024-03-20': { attended: false, hours: 0 }
-    }
-  },
-  {
-    id: '2',
-    name: 'Jane Smith',
-    initials: 'JS',
-    email: 'jane@example.com',
-    schedule: {
-      'tuesday': true,
-      'thursday': true
-    },
-    attendance: {
-      '2024-03-19': { attended: true, hours: 3 },
-      '2024-03-21': { attended: true, hours: 3 }
-    }
-  }
-];
+
 
 export default function Dashboard() {
   const navigate = useNavigate();

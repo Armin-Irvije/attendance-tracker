@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { ChevronRightIcon } from "lucide-react";
+import { ChevronRightIcon, ChevronLeftIcon } from "lucide-react";
 import { Card, CardHeader, CardDescription, CardTitle, CardContent } from "@/components/ui/card"
-import { PercentIcon, CalendarIcon, ClockIcon, BarChartIcon } from "lucide-react"
+import { PercentIcon, CalendarIcon, ClockIcon, BarChartIcon, CheckIcon, XIcon } from "lucide-react"
 import { useParams, useNavigate } from 'react-router-dom';
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import '../styles/clientPage.css';
 
 interface Client {
@@ -14,6 +16,7 @@ interface Client {
   phone?: string;
   image?: string;
   schedule: Record<string, boolean>;
+  scheduledDaysPerWeek?: number;
   attendance?: {
     [date: string]: {
       attended: boolean;
@@ -23,25 +26,57 @@ interface Client {
 }
 
 interface AttendanceSummary {
-  month: string;
+  weekRange: string;
   daysScheduled: number;
   daysAttended: number;
   attendancePercentage: number;
   totalHours: number;
 }
 
+interface CalendarDay {
+  date: Date;
+  dateStr: string;
+  dayNumber: number;
+  dayName: string;
+  attended: boolean;
+  hours: number;
+  isScheduled: boolean;
+}
+
 export default function ClientPage() {
   const { clientId } = useParams();
   const navigate = useNavigate();
   const [client, setClient] = useState<Client | null>(null);
+  const [currentWeekStart, setCurrentWeekStart] = useState<Date>(getWeekStart(new Date()));
   const [summary, setSummary] = useState<AttendanceSummary>({
-    month: new Date().toLocaleString('default', { month: 'long' }),
+    weekRange: '',
     daysScheduled: 0,
     daysAttended: 0,
     attendancePercentage: 0,
     totalHours: 0
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [scheduledDaysPerWeek, setScheduledDaysPerWeek] = useState<number>(5);
+
+  // Get the start of the week (Monday)
+  function getWeekStart(date: Date): Date {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
+    return new Date(d.setDate(diff));
+  }
+
+  // Get week range string
+  function getWeekRange(startDate: Date): string {
+    const endDate = new Date(startDate);
+    endDate.setDate(startDate.getDate() + 6);
+    
+    const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
+    const start = startDate.toLocaleDateString('en-US', options);
+    const end = endDate.toLocaleDateString('en-US', options);
+    
+    return `${start} - ${end}`;
+  }
 
   useEffect(() => {
     const loadClient = () => {
@@ -50,36 +85,9 @@ export default function ClientPage() {
       
       if (foundClient) {
         setClient(foundClient);
-        
-        // Calculate attendance summary from actual attendance data
-        const today = new Date();
-        const currentMonth = today.getMonth();
-        const currentYear = today.getFullYear();
-        
-        // Get all attendance records for the current month
-        const monthAttendance = Object.entries(foundClient.attendance || {}).filter(([date]) => {
-          const [year, month] = date.split('-').map(Number);
-          return year === currentYear && month === currentMonth + 1;
-        });
-
-        const daysScheduled = monthAttendance.length;
-        const daysAttended = monthAttendance.filter(([_, record]) => 
-          (record as { attended: boolean; hours: number }).attended
-        ).length;
-        const totalHours = monthAttendance.reduce((sum, [_, record]) => {
-          const r = record as { attended: boolean; hours: number };
-          return sum + (r.attended ? r.hours : 0);
-        }, 0);
-        
-        setSummary({
-          month: new Date().toLocaleString('default', { month: 'long' }),
-          daysScheduled,
-          daysAttended,
-          attendancePercentage: daysScheduled ? Math.round((daysAttended / daysScheduled) * 100) : 0,
-          totalHours
-        });
+        setScheduledDaysPerWeek(foundClient.scheduledDaysPerWeek || 5);
       } else {
-        navigate('/dashboard'); // Redirect if client not found
+        navigate('/dashboard');
       }
       setIsLoading(false);
     };
@@ -87,36 +95,130 @@ export default function ClientPage() {
     loadClient();
   }, [clientId, navigate]);
 
-  // Generate calendar days for the current month (weekdays only)
-  const generateCalendarDays = () => {
-    const today = new Date();
-    const currentMonth = today.getMonth();
-    const currentYear = today.getFullYear();
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+  // Calculate attendance summary for current week
+  useEffect(() => {
+    if (!client) return;
 
-    const days = [];
-    for (let i = 1; i <= Math.min(daysInMonth, 14); i++) {
-      const date = new Date(currentYear, currentMonth, i);
+    const weekDays = generateWeekDays();
+    const scheduledDays = weekDays.filter(day => day.isScheduled);
+    const attendedDays = scheduledDays.filter(day => day.attended);
+    const totalHours = attendedDays.reduce((sum, day) => sum + day.hours, 0);
+
+    setSummary({
+      weekRange: getWeekRange(currentWeekStart),
+      daysScheduled: scheduledDays.length,
+      daysAttended: attendedDays.length,
+      attendancePercentage: scheduledDays.length ? Math.round((attendedDays.length / scheduledDays.length) * 100) : 0,
+      totalHours
+    });
+  }, [client, currentWeekStart, scheduledDaysPerWeek]);
+
+  // Generate 7 days of the current week
+  const generateWeekDays = (): CalendarDay[] => {
+    const days: CalendarDay[] = [];
+    
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(currentWeekStart);
+      date.setDate(currentWeekStart.getDate() + i);
+      
+      const dateStr = date.toISOString().split('T')[0];
+      const attendanceRecord = client?.attendance?.[dateStr];
       const dayOfWeek = date.getDay();
-
-      // Skip weekends (0 = Sunday, 6 = Saturday)
-      if (dayOfWeek !== 0 && dayOfWeek !== 6) {
-        const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
-        const attendanceRecord = client?.attendance?.[dateStr];
-        
-        days.push({
-          date: i,
-          attended: attendanceRecord?.attended || false,
-          hours: attendanceRecord?.hours || 0,
-          dayName: date.toLocaleDateString("en-US", { weekday: "short" }),
-        });
-      }
+      
+      // Check if this day is scheduled (weekdays only for now, but respects scheduledDaysPerWeek)
+      const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
+      const isScheduled = isWeekday && i < scheduledDaysPerWeek;
+      
+      days.push({
+        date,
+        dateStr,
+        dayNumber: date.getDate(),
+        dayName: date.toLocaleDateString("en-US", { weekday: "short" }),
+        attended: attendanceRecord?.attended || false,
+        hours: attendanceRecord?.hours || 0,
+        isScheduled
+      });
     }
-
+    
     return days;
   };
 
-  const calendarDays = generateCalendarDays();
+  const weekDays = generateWeekDays();
+
+  // Handle attendance click
+  const handleAttendanceClick = (day: CalendarDay) => {
+    if (!day.isScheduled || !client) return;
+
+    const updatedClient = { ...client };
+    if (!updatedClient.attendance) {
+      updatedClient.attendance = {};
+    }
+
+    const currentRecord = updatedClient.attendance[day.dateStr];
+    
+    if (!currentRecord || !currentRecord.attended) {
+      // Mark as attended with default 2 hours
+      updatedClient.attendance[day.dateStr] = {
+        attended: true,
+        hours: 2
+      };
+    } else {
+      // Cycle through hours: 2 -> 3 -> absent
+      if (currentRecord.hours === 2) {
+        updatedClient.attendance[day.dateStr] = {
+          attended: true,
+          hours: 3
+        };
+      } else {
+        // Mark as absent
+        updatedClient.attendance[day.dateStr] = {
+          attended: false,
+          hours: 0
+        };
+      }
+    }
+
+    // Save to localStorage
+    const savedClients = JSON.parse(localStorage.getItem('clients') || '[]');
+    const clientIndex = savedClients.findIndex((c: Client) => c.id === client.id);
+    if (clientIndex !== -1) {
+      savedClients[clientIndex] = updatedClient;
+      localStorage.setItem('clients', JSON.stringify(savedClients));
+    }
+
+    setClient(updatedClient);
+  };
+
+  // Handle scheduled days change
+  const handleScheduledDaysChange = (days: string) => {
+    const numDays = parseInt(days);
+    setScheduledDaysPerWeek(numDays);
+    
+    if (client) {
+      const updatedClient = { ...client, scheduledDaysPerWeek: numDays };
+      
+      // Save to localStorage
+      const savedClients = JSON.parse(localStorage.getItem('clients') || '[]');
+      const clientIndex = savedClients.findIndex((c: Client) => c.id === client.id);
+      if (clientIndex !== -1) {
+        savedClients[clientIndex] = updatedClient;
+        localStorage.setItem('clients', JSON.stringify(savedClients));
+      }
+      
+      setClient(updatedClient);
+    }
+  };
+
+  // Navigate weeks
+  const navigateWeek = (direction: 'prev' | 'next') => {
+    const newWeekStart = new Date(currentWeekStart);
+    newWeekStart.setDate(currentWeekStart.getDate() + (direction === 'next' ? 7 : -7));
+    setCurrentWeekStart(newWeekStart);
+  };
+
+  const goToCurrentWeek = () => {
+    setCurrentWeekStart(getWeekStart(new Date()));
+  };
 
   if (isLoading) {
     return (
@@ -133,6 +235,8 @@ export default function ClientPage() {
     return null;
   }
 
+  const isCurrentWeek = getWeekRange(currentWeekStart) === getWeekRange(getWeekStart(new Date()));
+
   return (
     <div className="client-page-container">
       <header className="client-header">
@@ -141,6 +245,31 @@ export default function ClientPage() {
           Back to Dashboard
         </Button>
       </header>
+
+      {/* Schedule Configuration */}
+      <Card className="schedule-config">
+        <CardHeader>
+          <CardTitle>Schedule Configuration</CardTitle>
+          <CardDescription>Set how many days per week this client is scheduled</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="schedule-input">
+            <Label htmlFor="scheduled-days">Scheduled Days per Week</Label>
+            <Select value={scheduledDaysPerWeek.toString()} onValueChange={handleScheduledDaysChange}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className='schedule-menu'>
+                <SelectItem value="1">1 day</SelectItem>
+                <SelectItem value="2">2 days</SelectItem>
+                <SelectItem value="3">3 days</SelectItem>
+                <SelectItem value="4">4 days</SelectItem>
+                <SelectItem value="5">5 days</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="stats-grid">
         <Card className="stat-card">
@@ -154,7 +283,7 @@ export default function ClientPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="stat-card-content">
-            <p className="stat-time-period">This month</p>
+            <p className="stat-time-period">This week</p>
           </CardContent>
         </Card>
 
@@ -169,7 +298,7 @@ export default function ClientPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="stat-card-content">
-            <p className="stat-time-period">Weekdays this month</p>
+            <p className="stat-time-period">Scheduled days this week</p>
           </CardContent>
         </Card>
 
@@ -184,58 +313,99 @@ export default function ClientPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="stat-card-content">
-            <p className="stat-time-period">This month</p>
+            <p className="stat-time-period">This week</p>
           </CardContent>
         </Card>
       </div>
 
       <div className="calendar-section">
         <div className="calendar-header">
-          <h2 className="calendar-title">{summary.month} {new Date().getFullYear()}</h2>
-          <Button variant="outline" size="sm">
-            View Full Calendar
-            <ChevronRightIcon className="ml-1 h-4 w-4" />
-          </Button>
+          <div className="week-navigation">
+            <Button variant="outline" size="sm" onClick={() => navigateWeek('prev')}>
+              <ChevronLeftIcon className="h-4 w-4" />
+            </Button>
+            <h2 className="calendar-title">{summary.weekRange}</h2>
+            <Button variant="outline" size="sm" onClick={() => navigateWeek('next')}>
+              <ChevronRightIcon className="h-4 w-4" />
+            </Button>
+          </div>
+          {!isCurrentWeek && (
+            <Button variant="outline" size="sm" onClick={goToCurrentWeek}>
+              Current Week
+            </Button>
+          )}
         </div>
 
-        <div className="calendar-grid">
-          {calendarDays.map((day, index) => (
+        <div className="week-grid">
+          {weekDays.map((day, index) => (
             <Card
               key={index}
               className={`calendar-day ${
-                day.attended ? "calendar-day-attended" : "calendar-day-absent"
-              }`}
+                !day.isScheduled 
+                  ? "calendar-day-unscheduled" 
+                  : day.attended 
+                    ? "calendar-day-attended" 
+                    : "calendar-day-absent"
+              } ${day.isScheduled ? "calendar-day-clickable" : ""}`}
+              onClick={() => handleAttendanceClick(day)}
             >
               <CardContent className="calendar-day-content">
                 <div className="calendar-day-header">
-                  <span className="calendar-day-number">{day.date}</span>
+                  <span className="calendar-day-number">{day.dayNumber}</span>
                   <span className="calendar-day-name">{day.dayName}</span>
                 </div>
                 <div className="calendar-day-status">
-                  <div
-                    className={`status-indicator ${
-                      day.attended
-                        ? "status-indicator-attended"
-                        : "status-indicator-absent"
-                    }`}
-                  ></div>
-                  {day.attended ? (
-                    <span>{day.hours} hours</span>
+                  {!day.isScheduled ? (
+                    <span className="unscheduled-text">Not scheduled</span>
                   ) : (
-                    <span>Absent</span>
+                    <>
+                      <div
+                        className={`status-indicator ${
+                          day.attended
+                            ? "status-indicator-attended"
+                            : "status-indicator-absent"
+                        }`}
+                      >
+                        {day.attended ? (
+                          <CheckIcon className="h-3 w-3 text-white" />
+                        ) : (
+                          <XIcon className="h-3 w-3 text-white" />
+                        )}
+                      </div>
+                      {day.attended ? (
+                        <span>{day.hours} hours</span>
+                      ) : (
+                        <span>Absent</span>
+                      )}
+                    </>
                   )}
                 </div>
+                {day.isScheduled && (
+                  <div className="click-hint">
+                    Click to toggle
+                  </div>
+                )}
               </CardContent>
             </Card>
           ))}
         </div>
       </div>
 
+      <div className="attendance-instructions">
+        <Card>
+          <CardContent className="instruction-content">
+            <h3>How to track attendance:</h3>
+            <ul>
+              <li>Click on a scheduled day to mark as attended (2 hours)</li>
+              <li>Click again to change to 3 hours</li>
+              <li>Click once more to mark as absent</li>
+              <li>Only scheduled days can be clicked</li>
+            </ul>
+          </CardContent>
+        </Card>
+      </div>
+
       <div className="action-buttons">
-        <Button>
-          <CalendarIcon className="mr-2 h-4 w-4" />
-          Record Attendance
-        </Button>
         <Button variant="outline">
           <BarChartIcon className="mr-2 h-4 w-4" />
           Generate Report

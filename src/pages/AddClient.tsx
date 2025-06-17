@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from 'sonner';
 import { UserIcon, MailIcon, PhoneIcon, UserPlusIcon } from 'lucide-react';
 import { Checkbox } from "@/components/ui/checkbox";
-import './styles/add-client.css';
+import '../styles/add-client.css';
 
 interface Client {
   id: string;
