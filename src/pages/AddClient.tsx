@@ -39,23 +39,9 @@ export default function AddClient() {
     friday: false,
   });
   const [initials, setInitials] = useState('');
-  const [randomColor, setRandomColor] = useState('');
   const [selectedDays, setSelectedDays] = useState<string[]>([]);
 
-  // Generate a random pastel color for the avatar
-  useEffect(() => {
-    const colors = [
-      'bg-blue-100 text-blue-600 border-blue-200',
-      'bg-green-100 text-green-600 border-green-200',
-      'bg-purple-100 text-purple-600 border-purple-200',
-      'bg-amber-100 text-amber-600 border-amber-200',
-      'bg-rose-100 text-rose-600 border-rose-200',
-      'bg-emerald-100 text-emerald-600 border-emerald-200',
-      'bg-indigo-100 text-indigo-600 border-indigo-200',
-      'bg-cyan-100 text-cyan-600 border-cyan-200',
-    ];
-    setRandomColor(colors[Math.floor(Math.random() * colors.length)]);
-  }, []);
+
 
   // Update initials when name changes
   useEffect(() => {
@@ -139,12 +125,7 @@ export default function AddClient() {
         </header>
 
         <form onSubmit={handleSubmit} className="add-client-form">
-          {/* Client avatar preview */}
-          <div className="avatar-preview-section">
-            <div className={`client-avatar-preview ${randomColor} ${initials ? 'client-avatar-animation' : ''}`}>
-              {initials || <UserIcon className="h-8 w-8 opacity-50" />}
-            </div>
-          </div>
+          
 
           <div className="form-sections">
             {/* Personal Information Section */}

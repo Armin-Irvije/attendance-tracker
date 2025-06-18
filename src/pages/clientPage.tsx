@@ -27,6 +27,7 @@ interface Client {
 
 interface AttendanceSummary {
   weekRange: string;
+  monthName: string;
   daysScheduled: number;
   daysAttended: number;
   attendancePercentage: number;
@@ -50,6 +51,7 @@ export default function ClientPage() {
   const [currentWeekStart, setCurrentWeekStart] = useState<Date>(getWeekStart(new Date()));
   const [summary, setSummary] = useState<AttendanceSummary>({
     weekRange: '',
+    monthName: '',
     daysScheduled: 0,
     daysAttended: 0,
     attendancePercentage: 0,
@@ -78,6 +80,54 @@ export default function ClientPage() {
     return `${start} - ${end}`;
   }
 
+  // Get month name from current week
+  function getMonthName(date: Date): string {
+    return date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  }
+
+  // Calculate monthly attendance statistics
+  function calculateMonthlyStats(client: Client, currentWeek: Date): AttendanceSummary {
+    const monthStart = new Date(currentWeek.getFullYear(), currentWeek.getMonth(), 1);
+    const monthEnd = new Date(currentWeek.getFullYear(), currentWeek.getMonth() + 1, 0);
+    
+    let daysScheduled = 0;
+    let daysAttended = 0;
+    let totalHours = 0;
+    
+    // Iterate through all days in the month
+    for (let date = new Date(monthStart); date <= monthEnd; date.setDate(date.getDate() + 1)) {
+      const dayOfWeek = date.getDay();
+      const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5; // Monday to Friday
+      
+      if (isWeekday) {
+        // Calculate which day of the week this is (0 = Monday, 4 = Friday)
+        const weekdayIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+        
+        // Check if this weekday is within the scheduled days
+        if (weekdayIndex <= (client.scheduledDaysPerWeek || 5)) {
+          daysScheduled++;
+          
+          const dateStr = date.toISOString().split('T')[0];
+          const attendanceRecord = client.attendance?.[dateStr];
+          
+          if (attendanceRecord?.attended) {
+            daysAttended++;
+            totalHours += attendanceRecord.hours;
+          }
+        }
+      }
+    }
+    
+    return {
+      weekRange: getWeekRange(currentWeek),
+      monthName: getMonthName(currentWeek),
+      daysScheduled,
+      daysAttended,
+      attendancePercentage: daysScheduled ? Math.round((daysAttended / daysScheduled) * 100) : 0,
+      totalHours
+    };
+  }
+
   useEffect(() => {
     const loadClient = () => {
       const savedClients = JSON.parse(localStorage.getItem('clients') || '[]');
@@ -95,22 +145,12 @@ export default function ClientPage() {
     loadClient();
   }, [clientId, navigate]);
 
-  // Calculate attendance summary for current week
+  // Calculate attendance summary for current month
   useEffect(() => {
     if (!client) return;
 
-    const weekDays = generateWeekDays();
-    const scheduledDays = weekDays.filter(day => day.isScheduled);
-    const attendedDays = scheduledDays.filter(day => day.attended);
-    const totalHours = attendedDays.reduce((sum, day) => sum + day.hours, 0);
-
-    setSummary({
-      weekRange: getWeekRange(currentWeekStart),
-      daysScheduled: scheduledDays.length,
-      daysAttended: attendedDays.length,
-      attendancePercentage: scheduledDays.length ? Math.round((attendedDays.length / scheduledDays.length) * 100) : 0,
-      totalHours
-    });
+    const monthlyStats = calculateMonthlyStats(client, currentWeekStart);
+    setSummary(monthlyStats);
   }, [client, currentWeekStart, scheduledDaysPerWeek]);
 
   // Generate 7 days of the current week
@@ -126,8 +166,8 @@ export default function ClientPage() {
       const dayOfWeek = date.getDay();
       
       // Check if this day is scheduled (weekdays only for now, but respects scheduledDaysPerWeek)
-      const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5;
-      const isScheduled = isWeekday && i < scheduledDaysPerWeek;
+      const weekdayIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+      const isScheduled = weekdayIndex < scheduledDaysPerWeek;
       
       days.push({
         date,
@@ -283,7 +323,7 @@ export default function ClientPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="stat-card-content">
-            <p className="stat-time-period">This week</p>
+            <p className="stat-time-period">{summary.monthName}</p>
           </CardContent>
         </Card>
 
@@ -298,7 +338,7 @@ export default function ClientPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="stat-card-content">
-            <p className="stat-time-period">Scheduled days this week</p>
+            <p className="stat-time-period">Scheduled days in {summary.monthName}</p>
           </CardContent>
         </Card>
 
@@ -313,7 +353,7 @@ export default function ClientPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="stat-card-content">
-            <p className="stat-time-period">This week</p>
+            <p className="stat-time-period">{summary.monthName}</p>
           </CardContent>
         </Card>
       </div>
