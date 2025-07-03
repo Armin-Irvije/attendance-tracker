@@ -1,8 +1,14 @@
-/* Client page layout */
+.calendar-day-empty {
+  border: 1px solid transparent; /* Match card border or set as needed */
+  background-color: transparent;
+}
+
+/* General Styles */
 .client-page-container {
+  padding: 2rem;
   max-width: 1200px;
   margin: 0 auto;
-  padding: 2rem 1rem;
+  font-family: var(--font-sans);
 }
 
 .client-header {
