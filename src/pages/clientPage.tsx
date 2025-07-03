@@ -5,7 +5,7 @@ import { Card, CardHeader, CardDescription, CardTitle, CardContent } from "@/com
 import { PercentIcon, CalendarIcon, ClockIcon, BarChartIcon, CheckIcon, XIcon } from "lucide-react"
 import { useParams, useNavigate } from 'react-router-dom';
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import '../styles/clientPage.css';
 
 interface Client {
@@ -15,8 +15,14 @@ interface Client {
   email?: string;
   phone?: string;
   image?: string;
-  schedule: Record<string, boolean>;
-  scheduledDaysPerWeek?: number;
+  location?: string;
+  schedule: {
+    monday: boolean;
+    tuesday: boolean;
+    wednesday: boolean;
+    thursday: boolean;
+    friday: boolean;
+  };
   attendance?: {
     [date: string]: {
       attended: boolean;
@@ -58,7 +64,13 @@ export default function ClientPage() {
     totalHours: 0
   });
   const [isLoading, setIsLoading] = useState(true);
-  const [scheduledDaysPerWeek, setScheduledDaysPerWeek] = useState<number>(5);
+  const [schedule, setSchedule] = useState({
+    monday: false,
+    tuesday: false,
+    wednesday: false,
+    thursday: false,
+    friday: false,
+  });
 
   // Get the start of the week (Monday)
   function getWeekStart(date: Date): Date {
@@ -94,26 +106,21 @@ export default function ClientPage() {
     let daysAttended = 0;
     let totalHours = 0;
     
+    const clientSchedule = client.schedule || {};
+
     // Iterate through all days in the month
     for (let date = new Date(monthStart); date <= monthEnd; date.setDate(date.getDate() + 1)) {
-      const dayOfWeek = date.getDay();
-      const isWeekday = dayOfWeek >= 1 && dayOfWeek <= 5; // Monday to Friday
+      const dayName = date.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
       
-      if (isWeekday) {
-        // Calculate which day of the week this is (0 = Monday, 4 = Friday)
-        const weekdayIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+      if (clientSchedule[dayName as keyof typeof clientSchedule]) {
+        daysScheduled++;
         
-        // Check if this weekday is within the scheduled days
-        if (weekdayIndex < (client.scheduledDaysPerWeek || 5)) {
-          daysScheduled++;
-          
-          const dateStr = date.toISOString().split('T')[0];
-          const attendanceRecord = client.attendance?.[dateStr];
-          
-          if (attendanceRecord?.attended) {
-            daysAttended++;
-            totalHours += attendanceRecord.hours;
-          }
+        const dateStr = date.toISOString().split('T')[0];
+        const attendanceRecord = client.attendance?.[dateStr];
+        
+        if (attendanceRecord?.attended) {
+          daysAttended++;
+          totalHours += attendanceRecord.hours;
         }
       }
     }
@@ -135,7 +142,9 @@ export default function ClientPage() {
       
       if (foundClient) {
         setClient(foundClient);
-        setScheduledDaysPerWeek(foundClient.scheduledDaysPerWeek || 5);
+        if (foundClient.schedule) {
+          setSchedule(foundClient.schedule);
+        }
       } else {
         navigate('/dashboard');
       }
@@ -151,7 +160,7 @@ export default function ClientPage() {
 
     const monthlyStats = calculateMonthlyStats(client, currentWeekStart);
     setSummary(monthlyStats);
-  }, [client, currentWeekStart, scheduledDaysPerWeek]);
+  }, [client, currentWeekStart]);
 
   // Generate 7 days of the current week
   const generateWeekDays = (): CalendarDay[] => {
@@ -163,11 +172,9 @@ export default function ClientPage() {
       
       const dateStr = date.toISOString().split('T')[0];
       const attendanceRecord = client?.attendance?.[dateStr];
-      const dayOfWeek = date.getDay();
+      const dayName = date.toLocaleDateString("en-US", { weekday: "long" }).toLowerCase();
       
-      // Check if this day is scheduled (weekdays only for now, but respects scheduledDaysPerWeek)
-      const weekdayIndex = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-      const isScheduled = weekdayIndex < scheduledDaysPerWeek;
+      const isScheduled = client?.schedule?.[dayName as keyof typeof client.schedule] || false;
       
       days.push({
         date,
@@ -229,24 +236,27 @@ export default function ClientPage() {
     setClient(updatedClient);
   };
 
-  // Handle scheduled days change
-  const handleScheduledDaysChange = (days: string) => {
-    const numDays = parseInt(days);
-    setScheduledDaysPerWeek(numDays);
-    
-    if (client) {
-      const updatedClient = { ...client, scheduledDaysPerWeek: numDays };
-      
-      // Save to localStorage
-      const savedClients = JSON.parse(localStorage.getItem('clients') || '[]');
-      const clientIndex = savedClients.findIndex((c: Client) => c.id === client.id);
-      if (clientIndex !== -1) {
-        savedClients[clientIndex] = updatedClient;
-        localStorage.setItem('clients', JSON.stringify(savedClients));
-      }
-      
-      setClient(updatedClient);
+  // Handle schedule change
+  const handleScheduleChange = (day: keyof typeof schedule) => {
+    if (!client) return;
+
+    const newSchedule = {
+      ...schedule,
+      [day]: !schedule[day]
+    };
+    setSchedule(newSchedule);
+
+    const updatedClient = { ...client, schedule: newSchedule };
+
+    // Save to localStorage
+    const savedClients = JSON.parse(localStorage.getItem('clients') || '[]');
+    const clientIndex = savedClients.findIndex((c: Client) => c.id === client.id);
+    if (clientIndex !== -1) {
+      savedClients[clientIndex] = updatedClient;
+      localStorage.setItem('clients', JSON.stringify(savedClients));
     }
+
+    setClient(updatedClient);
   };
 
   // Navigate weeks
@@ -290,23 +300,23 @@ export default function ClientPage() {
       <Card className="schedule-config">
         <CardHeader>
           <CardTitle>Schedule Configuration</CardTitle>
-          <CardDescription>Set how many days per week this client is scheduled</CardDescription>
+          <CardDescription>Select the days this client is scheduled to attend.</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="schedule-input">
-            <Label htmlFor="scheduled-days">Scheduled Days per Week</Label>
-            <Select value={scheduledDaysPerWeek.toString()} onValueChange={handleScheduledDaysChange}>
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className='schedule-menu'>
-                <SelectItem value="1">1 day</SelectItem>
-                <SelectItem value="2">2 days</SelectItem>
-                <SelectItem value="3">3 days</SelectItem>
-                <SelectItem value="4">4 days</SelectItem>
-                <SelectItem value="5">5 days</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="schedule-grid">
+            {Object.entries(schedule).map(([day, checked]) => (
+              <div key={day} className="schedule-item" onClick={() => handleScheduleChange(day as keyof typeof schedule)}>
+                <Checkbox
+                  id={`schedule-${day}`}
+                  checked={checked}
+                  onCheckedChange={() => handleScheduleChange(day as keyof typeof schedule)}
+                  className="schedule-checkbox"
+                />
+                <Label htmlFor={`schedule-${day}`} className="schedule-label">
+                  {day.charAt(0).toUpperCase() + day.slice(1)}
+                </Label>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>

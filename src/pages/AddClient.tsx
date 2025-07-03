@@ -15,6 +15,7 @@ interface Client {
   email: string;
   phone: string;
   image?: string;
+  location?: string;
   schedule: {
     monday: boolean;
     tuesday: boolean;
@@ -30,6 +31,7 @@ export default function AddClient() {
     name: '',
     email: '',
     phone: '',
+    location: '',
   });
   const [schedule, setSchedule] = useState({
     monday: false,
@@ -99,6 +101,7 @@ export default function AddClient() {
       initials: initials,
       email: formData.email.trim(),
       phone: formData.phone.trim(),
+      location: formData.location.trim(),
       schedule: schedule
     };
 
@@ -183,6 +186,22 @@ export default function AddClient() {
                       onChange={handleInputChange}
                       className="form-field-input"
                       placeholder="(123) 456-7890"
+                    />
+                  </div>
+                </div>
+
+                <div className="form-field">
+                  <Label htmlFor="location" className="form-field-label">
+                    Location
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="location"
+                      name="location"
+                      value={formData.location}
+                      onChange={handleInputChange}
+                      className="form-field-input"
+                      placeholder="e.g., Main Street Center"
                     />
                   </div>
                 </div>

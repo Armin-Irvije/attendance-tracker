@@ -4,6 +4,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Toaster } from "sonner";
 import { PlusIcon, XIcon } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import './styles/dashboard.css';
 import { useNavigate } from 'react-router-dom';
 import { toast } from "sonner";
@@ -15,6 +17,7 @@ interface Client {
   email?: string;
   phone?: string;
   image?: string;
+  location?: string;
   schedule: Record<string, boolean>;
   attendance?: {
     [date: string]: {
@@ -30,12 +33,16 @@ export default function Dashboard() {
   const navigate = useNavigate();
   const [clients, setClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [locations, setLocations] = useState<string[]>([]);
+  const [selectedLocation, setSelectedLocation] = useState<string>("All");
 
   // Load clients from localStorage
   useEffect(() => {
     const loadClients = () => {
       const savedClients = JSON.parse(localStorage.getItem('clients') || '[]');
       setClients(savedClients);
+      const uniqueLocations = ["All", ...Array.from(new Set(savedClients.map((c: Client) => c.location).filter(Boolean)))];
+      setLocations(uniqueLocations); //ignore error
       setIsLoading(false);
     };
 
@@ -69,6 +76,8 @@ export default function Dashboard() {
     navigate(`/client/${client.id}`);
   };
 
+  const filteredClients = clients.filter(client => selectedLocation === "All" || client.location === selectedLocation);
+
   if (isLoading) {
     return (
       <div className="loading-container">
@@ -89,8 +98,22 @@ export default function Dashboard() {
         <p className="dashboard-subtitle">Manage your clients and view their attendance</p>
       </header>
 
+      <div className="dashboard-filters">
+        <Label htmlFor="location-filter">Filter by Location</Label>
+        <Select value={selectedLocation} onValueChange={setSelectedLocation}>
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {locations.map(location => (
+              <SelectItem key={location} value={location}>{location}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
       <div className="clients-grid">
-        {clients.map(client => (
+        {filteredClients.map(client => (
           <Card 
             key={client.id}
             className="client-card"

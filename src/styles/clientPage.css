@@ -361,3 +361,51 @@
     gap: 0.5rem;
   }
 }
+
+.schedule-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+}
+
+.schedule-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem;
+  border-radius: 6px;
+  background-color: hsl(210 40% 98%);
+  border: 1px solid hsl(214.3 31.8% 91.4%);
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.schedule-item:hover {
+  background-color: hsl(210 40% 96%);
+  border-color: hsl(221.2 83.2% 53.3%);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.schedule-item:has(.schedule-checkbox[data-state="checked"]) {
+  background-color: hsl(221.2 83.2% 53.3% / 0.1);
+  border-color: hsl(221.2 83.2% 53.3%);
+}
+
+.schedule-checkbox {
+  border: 2px solid hsl(214.3 31.8% 91.4%);
+  background-color: hsl(0 0% 100%);
+}
+
+.schedule-checkbox[data-state="checked"] {
+  background-color: hsl(221.2 83.2% 53.3%);
+  border-color: hsl(221.2 83.2% 53.3%);
+}
+
+.schedule-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: hsl(222.2 47.4% 11.2%);
+  cursor: pointer;
+  user-select: none;
+}
