@@ -3,12 +3,13 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Toaster } from "sonner";
-import { PlusIcon, XIcon } from "lucide-react";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
+import { PlusIcon, XIcon, CheckIcon } from "lucide-react";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import './styles/dashboard.css';
 import { useNavigate } from 'react-router-dom';
 import { toast } from "sonner";
+import DailyAttendance from "@/components/DailyAttendance";
 
 interface Client {
   id: string;
@@ -25,6 +26,9 @@ interface Client {
       hours: number;
     };
   };
+  paymentStatus?: {
+    [month: string]: "Paid" | "Unpaid";
+  };
 }
 
 
@@ -35,6 +39,7 @@ export default function Dashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [locations, setLocations] = useState<string[]>([]);
   const [selectedLocation, setSelectedLocation] = useState<string>("All");
+  const [searchTerm, setSearchTerm] = useState<string>('');
 
   // Load clients from localStorage
   useEffect(() => {
@@ -71,12 +76,65 @@ export default function Dashboard() {
     }
   };
 
-  // Handle client selection
+  // Handle client selection (navigation only)
   const handleClientClick = (client: Client) => {
     navigate(`/client/${client.id}`);
   };
 
-  const filteredClients = clients.filter(client => selectedLocation === "All" || client.location === selectedLocation);
+  // Handle client check-in
+  const handleCheckIn = (client: Client, event: React.MouseEvent) => {
+    event.stopPropagation(); // Prevent card click from navigating
+
+    const today = new Date();
+    const dayName = today.toLocaleDateString("en-US", { weekday: "long" }).toLowerCase();
+    const dateStr = today.toISOString().split('T')[0];
+
+    if (client.schedule[dayName as keyof typeof client.schedule]) {
+      const updatedClient = { ...client };
+      if (!updatedClient.attendance) {
+        updatedClient.attendance = {};
+      }
+
+      if (!updatedClient.attendance[dateStr] || !updatedClient.attendance[dateStr].attended) {
+        updatedClient.attendance[dateStr] = { attended: true, hours: 2 };
+
+        const savedClients = JSON.parse(localStorage.getItem('clients') || '[]');
+        const clientIndex = savedClients.findIndex((c: Client) => c.id === client.id);
+        if (clientIndex !== -1) {
+          savedClients[clientIndex] = updatedClient;
+          localStorage.setItem('clients', JSON.stringify(savedClients));
+          setClients(savedClients);
+          toast.success(`${client.name} has been checked in for today.`);
+        }
+      } else {
+        toast.info(`${client.name} is already checked in for today.`);
+      }
+    } else {
+      toast.info(`${client.name} is not scheduled for today.`);
+    }
+  };
+
+  const getPaymentStatus = (client: Client) => {
+    const month = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+    return client.paymentStatus?.[month] || "Unpaid";
+  };
+
+  const today = new Date();
+  const todayDayName = today.toLocaleDateString("en-US", { weekday: "long" }).toLowerCase();
+  const todayDateStr = today.toISOString().split('T')[0];
+
+  const sortedAndFilteredClients = clients
+    .filter(client => selectedLocation === "All" || client.location === selectedLocation)
+    .filter(client => client.name.toLowerCase().includes(searchTerm.toLowerCase()))
+    .sort((a, b) => {
+      const aScheduledToday = a.schedule[todayDayName as keyof typeof a.schedule];
+      const bScheduledToday = b.schedule[todayDayName as keyof typeof b.schedule];
+
+      if (aScheduledToday && !bScheduledToday) return -1;
+      if (!aScheduledToday && bScheduledToday) return 1;
+
+      return a.name.localeCompare(b.name);
+    });
 
   if (isLoading) {
     return (
@@ -98,25 +156,30 @@ export default function Dashboard() {
         <p className="dashboard-subtitle">Manage your clients and view their attendance</p>
       </header>
 
+      <DailyAttendance clients={clients} />
+
       <div className="dashboard-filters">
-        <Label htmlFor="location-filter">Filter by Location</Label>
-        <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
+        <Tabs value={selectedLocation} onValueChange={setSelectedLocation}>
+          <TabsList>
             {locations.map(location => (
-              <SelectItem key={location} value={location}>{location}</SelectItem>
+              <TabsTrigger key={location} value={location}>{location}</TabsTrigger>
             ))}
-          </SelectContent>
-        </Select>
+          </TabsList>
+        </Tabs>
+        <Input
+          type="text"
+          placeholder="Search clients by name..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="search-input"
+        />
       </div>
 
       <div className="clients-grid">
-        {filteredClients.map(client => (
+        {sortedAndFilteredClients.map(client => (
           <Card 
             key={client.id}
-            className="client-card"
+            className={`client-card ${client.attendance && client.attendance[todayDateStr]?.attended ? 'checked-in' : ''}`}
             onClick={() => handleClientClick(client)}
           >
             <CardContent className="client-card-content">
@@ -128,14 +191,24 @@ export default function Dashboard() {
                 <div className="client-details">
                   <h3 className="client-name">{client.name}</h3>
                   {client.email && <p className="client-email">{client.email}</p>}
+                  <span className={`payment-status ${getPaymentStatus(client).toLowerCase()}`}>
+                    {getPaymentStatus(client)}
+                  </span>
                 </div>
               </div>
-              <button 
+              <button
                 className="delete-button"
                 onClick={(e) => handleDeleteClient(client.id, e)}
                 title="Delete client"
               >
                 <XIcon className="h-4 w-4" />
+              </button>
+              <button
+                className="check-in-button"
+                onClick={(e) => handleCheckIn(client, e)}
+                title="Check in client"
+              >
+                <CheckIcon className="h-4 w-4" />
               </button>
             </CardContent>
           </Card>

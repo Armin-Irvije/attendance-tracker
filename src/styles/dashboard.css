@@ -23,6 +23,12 @@
 .dashboard-subtitle {
   color: #64748b; /* Tailwind slate-500 */
 }
+.dashboard-filters{
+  margin-top: 10px;
+}
+.search-input{
+  margin-top: 10px;
+}
 
 .client-selector {
   display: flex;

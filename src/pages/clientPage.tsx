@@ -29,6 +29,9 @@ interface Client {
       hours: number;
     };
   };
+  paymentStatus?: {
+    [month: string]: "Paid" | "Unpaid";
+  };
 }
 
 interface AttendanceSummary {
@@ -259,6 +262,29 @@ export default function ClientPage() {
     setClient(updatedClient);
   };
 
+  const handlePayment = () => {
+    if (!client) return;
+
+    const month = getMonthName(currentWeekStart);
+    const updatedClient = { ...client };
+
+    if (!updatedClient.paymentStatus) {
+      updatedClient.paymentStatus = {};
+    }
+
+    updatedClient.paymentStatus[month] = "Paid";
+
+    // Save to localStorage
+    const savedClients = JSON.parse(localStorage.getItem('clients') || '[]');
+    const clientIndex = savedClients.findIndex((c: Client) => c.id === client.id);
+    if (clientIndex !== -1) {
+      savedClients[clientIndex] = updatedClient;
+      localStorage.setItem('clients', JSON.stringify(savedClients));
+    }
+
+    setClient(updatedClient);
+  };
+
   // Navigate weeks
   const navigateWeek = (direction: 'prev' | 'next') => {
     const newWeekStart = new Date(currentWeekStart);
@@ -463,6 +489,10 @@ export default function ClientPage() {
         <Button variant="outline">
           <BarChartIcon className="mr-2 h-4 w-4" />
           Generate Report
+        </Button>
+        <Button onClick={handlePayment} disabled={client.paymentStatus && client.paymentStatus[summary.monthName] === "Paid"}>
+          <CheckIcon className="mr-2 h-4 w-4" />
+          Mark as Paid
         </Button>
       </div>
     </div>
