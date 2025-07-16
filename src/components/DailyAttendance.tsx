@@ -7,15 +7,16 @@ interface DailyAttendanceProps {
 
 const DailyAttendance = ({ clients }: DailyAttendanceProps) => {
   const today = new Date().toISOString().split('T')[0];
-  const attendance: Record<string, number> = {};
+  // Map location to array of client names
+  const attendance: Record<string, string[]> = {};
 
   clients.forEach(client => {
     if (client.attendance && client.attendance[today]?.attended) {
       const location = client.location || 'Unknown';
       if (!attendance[location]) {
-        attendance[location] = 0;
+        attendance[location] = [];
       }
-      attendance[location]++;
+      attendance[location].push(client.name);
     }
   });
 
@@ -27,9 +28,10 @@ const DailyAttendance = ({ clients }: DailyAttendanceProps) => {
       <CardContent>
         {Object.keys(attendance).length > 0 ? (
           <ul>
-            {Object.entries(attendance).map(([location, count]) => (
-              <li key={location}>
-                {location}: {count}
+            {Object.entries(attendance).map(([location, names]) => (
+              <li key={location} style={{ marginBottom: '0.5em' }}>
+                <strong>{location}:</strong> {names.length} <br />
+                <span style={{ fontSize: '0.95em', color: '#64748b' }}>{names.join(', ')}</span>
               </li>
             ))}
           </ul>

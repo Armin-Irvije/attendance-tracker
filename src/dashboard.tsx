@@ -3,8 +3,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Toaster } from "sonner";
-import { PlusIcon, XIcon, CheckIcon } from "lucide-react";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PlusIcon, XIcon, CheckIcon, Trash2Icon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import './styles/dashboard.css';
 import { useNavigate } from 'react-router-dom';
@@ -46,8 +45,8 @@ export default function Dashboard() {
     const loadClients = () => {
       const savedClients = JSON.parse(localStorage.getItem('clients') || '[]');
       setClients(savedClients);
-      const uniqueLocations = ["All", ...Array.from(new Set(savedClients.map((c: Client) => c.location).filter(Boolean)))];
-      setLocations(uniqueLocations); //ignore error
+      const uniqueLocations = ["All", ...Array.from(new Set(savedClients.map((c: Client) => c.location).filter(Boolean))) as string[]];
+      setLocations(uniqueLocations);
       setIsLoading(false);
     };
 
@@ -156,23 +155,28 @@ export default function Dashboard() {
         <p className="dashboard-subtitle">Manage your clients and view their attendance</p>
       </header>
 
-      <DailyAttendance clients={clients} />
-
-      <div className="dashboard-filters">
-        <Tabs value={selectedLocation} onValueChange={setSelectedLocation}>
-          <TabsList>
+      <div className="dashboard-top-row">
+        <div className="daily-attendance-compact">
+          <DailyAttendance clients={clients} />
+        </div>
+        <div className="dashboard-filters-inline">
+          <select
+            className="select location-select"
+            value={selectedLocation}
+            onChange={e => setSelectedLocation(e.target.value)}
+          >
             {locations.map(location => (
-              <TabsTrigger key={location} value={location}>{location}</TabsTrigger>
+              <option key={location} value={location}>{location}</option>
             ))}
-          </TabsList>
-        </Tabs>
-        <Input
-          type="text"
-          placeholder="Search clients by name..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="search-input"
-        />
+          </select>
+          <Input
+            type="text"
+            placeholder="Search clients by name..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="search-input"
+          />
+        </div>
       </div>
 
       <div className="clients-grid">
@@ -197,11 +201,11 @@ export default function Dashboard() {
                 </div>
               </div>
               <button
-                className="delete-button"
+                className="client-delete-btn"
                 onClick={(e) => handleDeleteClient(client.id, e)}
                 title="Delete client"
               >
-                <XIcon className="h-4 w-4" />
+                <Trash2Icon className="trash-icon" />
               </button>
               <button
                 className="check-in-button"

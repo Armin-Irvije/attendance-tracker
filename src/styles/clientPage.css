@@ -9,6 +9,8 @@
   max-width: 1200px;
   margin: 0 auto;
   font-family: var(--font-sans);
+  background: #fff;
+  color: #111;
 }
 
 .client-header {
@@ -16,6 +18,40 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
+  position: relative;
+}
+
+.client-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  position: relative;
+}
+
+.delete-client-btn {
+  background: none;
+  border: none;
+  padding: 0.4em;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.delete-client-btn:hover {
+  background: #fee2e2;
+}
+
+.trash-icon {
+  color: #ef4444;
+  width: 1.5em;
+  height: 1.5em;
+  transition: color 0.2s;
+}
+.delete-client-btn:hover .trash-icon {
+  color: #b91c1c;
 }
 
 .client-title {
@@ -30,6 +66,9 @@
   margin-bottom: 2rem;
   border-radius: 0.5rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  color: #111;
 }
 
 .schedule-input {
@@ -105,6 +144,9 @@
   border-radius: 0.5rem;
   padding: 1.5rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  color: #111;
 }
 
 .calendar-header {
@@ -163,18 +205,18 @@
 }
 
 .calendar-day-attended {
-  background-color: hsl(142.1 76.2% 36.3% / 0.1);
-  border: 2px solid hsl(142.1 76.2% 36.3% / 0.3);
+  background-color: #d1fae5;
+  border: 2px solid #6ee7b7;
 }
 
 .calendar-day-absent {
-  background-color: hsl(0 84.2% 60.2% / 0.1);
-  border: 2px solid hsl(0 84.2% 60.2% / 0.3);
+  background-color: #fee2e2;
+  border: 2px solid #fca5a5;
 }
 
 .calendar-day-unscheduled {
-  background-color: hsl(210 40% 96%);
-  border: 1px solid hsl(214.3 31.8% 91.4%);
+  background-color: #f3f4f6;
+  border: 1px solid #e5e7eb;
   opacity: 0.7;
 }
 
@@ -196,7 +238,7 @@
 .calendar-day-number {
   font-weight: 700;
   font-size: 1.125rem;
-  color: hsl(222.2 47.4% 11.2%);
+  color: #111;
 }
 
 .calendar-day-name {
@@ -224,11 +266,11 @@
 }
 
 .status-indicator-attended {
-  background-color: hsl(142.1 76.2% 36.3%);
+  background-color: #22c55e;
 }
 
 .status-indicator-absent {
-  background-color: hsl(0 84.2% 60.2%);
+  background-color: #ef4444;
 }
 
 .unscheduled-text {
@@ -289,6 +331,18 @@
 
 .action-buttons button {
   min-width: 200px;
+  background: #2563eb;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0.6em 1.2em;
+  font-weight: 600;
+  transition: background 0.2s, color 0.2s;
+}
+button:hover,
+.action-buttons button:hover {
+  background: #1d4ed8;
+  color: #fff;
 }
 
 /* Loading state */
@@ -306,15 +360,15 @@
 .loading-spinner {
   width: 2rem;
   height: 2rem;
-  border: 0.25rem solid hsl(214.3 31.8% 91.4%);
-  border-top-color: hsl(215.4 16.3% 46.9%);
+  border: 0.25rem solid #e5e7eb;
+  border-top-color: #2563eb;
   border-radius: 50%;
   margin: 0 auto 1rem auto;
   animation: spin 1s linear infinite;
 }
 
 .loading-text {
-  color: hsl(215.4 16.3% 46.9%);
+  color: #64748b;
 }
 
 @keyframes spin {
@@ -405,7 +459,7 @@
 .schedule-label {
   font-size: 0.875rem;
   font-weight: 500;
-  color: hsl(222.2 47.4% 11.2%);
+  color: #111;
   cursor: pointer;
   user-select: none;
 }

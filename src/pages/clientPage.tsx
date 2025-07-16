@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { ChevronRightIcon, ChevronLeftIcon } from "lucide-react";
+import { ChevronRightIcon, ChevronLeftIcon, Trash2Icon } from "lucide-react";
 import { Card, CardHeader, CardDescription, CardTitle, CardContent } from "@/components/ui/card"
 import { PercentIcon, CalendarIcon, ClockIcon, BarChartIcon, CheckIcon, XIcon } from "lucide-react"
 import { useParams, useNavigate } from 'react-router-dom';
@@ -296,6 +296,15 @@ export default function ClientPage() {
     setCurrentWeekStart(getWeekStart(new Date()));
   };
 
+  const handleDeleteClient = () => {
+    if (!client) return;
+    if (!window.confirm("Are you sure you want to delete this client? This action cannot be undone.")) return;
+    const savedClients = JSON.parse(localStorage.getItem('clients') || '[]');
+    const updatedClients = savedClients.filter((c: Client) => c.id !== client.id);
+    localStorage.setItem('clients', JSON.stringify(updatedClients));
+    navigate('/dashboard');
+  };
+
   if (isLoading) {
     return (
       <div className="loading-container">
@@ -317,9 +326,14 @@ export default function ClientPage() {
     <div className="client-page-container">
       <header className="client-header">
         <h1 className="client-title">{client.name}'s Attendance</h1>
-        <Button variant="outline" onClick={() => navigate('/dashboard')}>
-          Back to Dashboard
-        </Button>
+        <div className="client-header-actions">
+          <Button variant="outline" onClick={() => navigate('/dashboard')}>
+            Back to Dashboard
+          </Button>
+          <button className="delete-client-btn" title="Delete client" onClick={handleDeleteClient}>
+            <Trash2Icon className="trash-icon" />
+          </button>
+        </div>
       </header>
 
       {/* Schedule Configuration */}
