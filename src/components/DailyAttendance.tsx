@@ -30,8 +30,11 @@ const DailyAttendance = ({ clients }: DailyAttendanceProps) => {
           <ul>
             {Object.entries(attendance).map(([location, names]) => (
               <li key={location} style={{ marginBottom: '0.5em' }}>
-                <strong>{location}:</strong> {names.length} <br />
-                <span style={{ fontSize: '0.95em', color: '#64748b' }}>{names.join(', ')}</span>
+                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.75em' }}>
+                  <strong>{location}:</strong>
+                  <span>{names.length}</span>
+                  <span style={{ fontSize: '0.95em', color: '#64748b' }}>{names.join(', ')}</span>
+                </div>
               </li>
             ))}
           </ul>

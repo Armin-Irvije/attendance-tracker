@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Toaster } from "sonner";
-import { PlusIcon, XIcon, CheckIcon, Trash2Icon } from "lucide-react";
+import { PlusIcon, CheckIcon, Trash2Icon, DollarSignIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import './styles/dashboard.css';
 import { useNavigate } from 'react-router-dom';
@@ -37,7 +37,7 @@ export default function Dashboard() {
   const [clients, setClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [locations, setLocations] = useState<string[]>([]);
-  const [selectedLocation, setSelectedLocation] = useState<string>("All");
+  const [selectedLocation, setSelectedLocation] = useState<string>("All Locations");
   const [searchTerm, setSearchTerm] = useState<string>('');
 
   // Load clients from localStorage
@@ -45,7 +45,7 @@ export default function Dashboard() {
     const loadClients = () => {
       const savedClients = JSON.parse(localStorage.getItem('clients') || '[]');
       setClients(savedClients);
-      const uniqueLocations = ["All", ...Array.from(new Set(savedClients.map((c: Client) => c.location).filter(Boolean))) as string[]];
+      const uniqueLocations = ["All Locations", ...Array.from(new Set(savedClients.map((c: Client) => c.location).filter(Boolean))) as string[]];
       setLocations(uniqueLocations);
       setIsLoading(false);
     };
@@ -61,16 +61,16 @@ export default function Dashboard() {
   // Handle client deletion
   const handleDeleteClient = (clientId: string, event: React.MouseEvent) => {
     event.stopPropagation(); // Prevent triggering the client selection
-    
+
     // Confirm deletion
     if (window.confirm('Are you sure you want to delete this client?')) {
       // Remove client from state
       const updatedClients = clients.filter(client => client.id !== clientId);
       setClients(updatedClients);
-      
+
       // Update localStorage
       localStorage.setItem('clients', JSON.stringify(updatedClients));
-      
+
       toast.success('Client deleted successfully');
     }
   };
@@ -123,7 +123,7 @@ export default function Dashboard() {
   const todayDateStr = today.toISOString().split('T')[0];
 
   const sortedAndFilteredClients = clients
-    .filter(client => selectedLocation === "All" || client.location === selectedLocation)
+    .filter(client => selectedLocation === "All Locations" || client.location === selectedLocation)
     .filter(client => client.name.toLowerCase().includes(searchTerm.toLowerCase()))
     .sort((a, b) => {
       const aScheduledToday = a.schedule[todayDayName as keyof typeof a.schedule];
@@ -149,7 +149,7 @@ export default function Dashboard() {
   return (
     <div className="dashboard-container">
       <Toaster />
-      
+
       <header className="dashboard-header">
         <h1 className="dashboard-title">Client Management Dashboard</h1>
         <p className="dashboard-subtitle">Manage your clients and view their attendance</p>
@@ -181,7 +181,7 @@ export default function Dashboard() {
 
       <div className="clients-grid">
         {sortedAndFilteredClients.map(client => (
-          <Card 
+          <Card
             key={client.id}
             className={`client-card ${client.attendance && client.attendance[todayDateStr]?.attended ? 'checked-in' : ''}`}
             onClick={() => handleClientClick(client)}
@@ -195,7 +195,13 @@ export default function Dashboard() {
                 <div className="client-details">
                   <h3 className="client-name">{client.name}</h3>
                   {client.email && <p className="client-email">{client.email}</p>}
+
                   <span className={`payment-status ${getPaymentStatus(client).toLowerCase()}`}>
+                    {getPaymentStatus(client) === "Paid" && (
+                      <span className="paid-icon-wrapper" title="Paid">
+                        <DollarSignIcon className="paid-icon" />
+                      </span>
+                    )}
                     {getPaymentStatus(client)}
                   </span>
                 </div>
@@ -208,17 +214,23 @@ export default function Dashboard() {
                 <Trash2Icon className="trash-icon" />
               </button>
               <button
-                className="check-in-button"
+                className={`check-in-button${
+                  (!client.schedule[todayDayName] || (client.attendance && client.attendance[todayDateStr]?.attended))
+                    ? ' check-in-faded' : ''
+                }`}
                 onClick={(e) => handleCheckIn(client, e)}
                 title="Check in client"
+                disabled={
+                  !client.schedule[todayDayName] || (client.attendance && client.attendance[todayDateStr]?.attended)
+                }
               >
                 <CheckIcon className="h-4 w-4" />
               </button>
             </CardContent>
           </Card>
         ))}
-        
-        <Card 
+
+        <Card
           className="add-client-card"
           onClick={handleAddClientClick}
         >

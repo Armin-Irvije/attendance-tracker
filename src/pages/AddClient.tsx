@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from 'sonner';
-import { UserIcon, MailIcon, PhoneIcon, UserPlusIcon } from 'lucide-react';
+import { UserIcon, MailIcon, PhoneIcon, UserPlusIcon, MapPinIcon } from 'lucide-react';
 import { Checkbox } from "@/components/ui/checkbox";
 import '../styles/add-client.css';
 
@@ -195,6 +195,7 @@ export default function AddClient() {
                     Location
                   </Label>
                   <div className="relative">
+                    <MapPinIcon className="form-field-icon h-4 w-4" />
                     <Input
                       id="location"
                       name="location"

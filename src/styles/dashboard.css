@@ -730,8 +730,7 @@ button:hover,
 
 .daily-attendance-compact {
   flex: 0 0 auto;
-  min-width: 220px;
-  max-width: 320px;
+  width: 50%;
 }
 
 .dashboard-filters-inline {
@@ -770,4 +769,29 @@ button:hover,
 }
 .daily-attendance-compact .card-content {
   padding: 0.5rem 0 0 0;
+}
+
+.payment-status{
+  align-items: center;
+}
+.paid-icon-wrapper {
+  margin-top: 5px;
+  display: inline-flex;
+  align-items: center;
+  margin-right: 0.3em;
+}
+.paid-icon {
+  color: #22c55e;
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: middle;
+}
+
+.check-in-faded {
+  opacity: 0.5;
+  background: #cbd5e1 !important; /* Tailwind slate-300 */
+  color: #64748b !important; /* Tailwind slate-500 */
+  cursor: not-allowed !important;
+  pointer-events: none;
+  border: none;
 }
