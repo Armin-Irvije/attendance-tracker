@@ -272,7 +272,12 @@ export default function ClientPage() {
       updatedClient.paymentStatus = {};
     }
 
-    updatedClient.paymentStatus[month] = "Paid";
+    // Toggle Paid/Unpaid
+    if (updatedClient.paymentStatus[month] === "Paid") {
+      updatedClient.paymentStatus[month] = "Unpaid";
+    } else {
+      updatedClient.paymentStatus[month] = "Paid";
+    }
 
     // Save to localStorage
     const savedClients = JSON.parse(localStorage.getItem('clients') || '[]');
@@ -504,9 +509,13 @@ export default function ClientPage() {
           <BarChartIcon className="mr-2 h-4 w-4" />
           Generate Report
         </Button>
-        <Button onClick={handlePayment} disabled={client.paymentStatus && client.paymentStatus[summary.monthName] === "Paid"}>
-          <CheckIcon className="mr-2 h-4 w-4" />
-          Mark as Paid
+        <Button onClick={handlePayment}>
+          {client.paymentStatus && client.paymentStatus[summary.monthName] === "Paid" ? (
+            <XIcon className="mr-2 h-4 w-4" />
+          ) : (
+            <CheckIcon className="mr-2 h-4 w-4" />
+          )}
+          {client.paymentStatus && client.paymentStatus[summary.monthName] === "Paid" ? "Mark as Unpaid" : "Mark as Paid"}
         </Button>
       </div>
     </div>

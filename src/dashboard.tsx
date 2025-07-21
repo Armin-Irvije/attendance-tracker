@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Toaster } from "sonner";
-import { PlusIcon, CheckIcon, Trash2Icon, DollarSignIcon } from "lucide-react";
+import { PlusIcon, CheckIcon, Trash2Icon, DollarSignIcon, XIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import './styles/dashboard.css';
 import { useNavigate } from 'react-router-dom';
@@ -94,19 +94,21 @@ export default function Dashboard() {
         updatedClient.attendance = {};
       }
 
-      if (!updatedClient.attendance[dateStr] || !updatedClient.attendance[dateStr].attended) {
+      const alreadyCheckedIn = updatedClient.attendance[dateStr]?.attended;
+      if (!alreadyCheckedIn) {
         updatedClient.attendance[dateStr] = { attended: true, hours: 2 };
-
-        const savedClients = JSON.parse(localStorage.getItem('clients') || '[]');
-        const clientIndex = savedClients.findIndex((c: Client) => c.id === client.id);
-        if (clientIndex !== -1) {
-          savedClients[clientIndex] = updatedClient;
-          localStorage.setItem('clients', JSON.stringify(savedClients));
-          setClients(savedClients);
-          toast.success(`${client.name} has been checked in for today.`);
-        }
+        toast.success(`${client.name} has been checked in for today.`);
       } else {
-        toast.info(`${client.name} is already checked in for today.`);
+        updatedClient.attendance[dateStr] = { attended: false, hours: 0 };
+        toast.info(`${client.name}'s check-in for today has been undone.`);
+      }
+
+      const savedClients = JSON.parse(localStorage.getItem('clients') || '[]');
+      const clientIndex = savedClients.findIndex((c: Client) => c.id === client.id);
+      if (clientIndex !== -1) {
+        savedClients[clientIndex] = updatedClient;
+        localStorage.setItem('clients', JSON.stringify(savedClients));
+        setClients(savedClients);
       }
     } else {
       toast.info(`${client.name} is not scheduled for today.`);
@@ -215,16 +217,15 @@ export default function Dashboard() {
               </button>
               <button
                 className={`check-in-button${
-                  (!client.schedule[todayDayName] || (client.attendance && client.attendance[todayDateStr]?.attended))
-                    ? ' check-in-faded' : ''
+                  !client.schedule[todayDayName]
+                    ? ' check-in-faded' : client.attendance && client.attendance[todayDateStr]?.attended
+                    ? ' checked-in' : ''
                 }`}
                 onClick={(e) => handleCheckIn(client, e)}
-                title="Check in client"
-                disabled={
-                  !client.schedule[todayDayName] || (client.attendance && client.attendance[todayDateStr]?.attended)
-                }
+                title={client.attendance && client.attendance[todayDateStr]?.attended ? "Undo check-in" : "Check in client"}
+                disabled={!client.schedule[todayDayName]}
               >
-                <CheckIcon className="h-4 w-4" />
+                {client.attendance && client.attendance[todayDateStr]?.attended ? <XIcon className="h-4 w-4" /> : <CheckIcon className="h-4 w-4" />}
               </button>
             </CardContent>
           </Card>

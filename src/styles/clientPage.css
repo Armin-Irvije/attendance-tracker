@@ -345,6 +345,15 @@ button:hover,
   color: #fff;
 }
 
+.action-buttons button.paid {
+  background: #22c55e;
+  color: #fff;
+}
+.action-buttons button.unpaid {
+  background: #2563eb;
+  color: #fff;
+}
+
 /* Loading state */
 .loading-container {
   display: flex;

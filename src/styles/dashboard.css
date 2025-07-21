@@ -795,3 +795,11 @@ button:hover,
   pointer-events: none;
   border: none;
 }
+.check-in-button.checked-in {
+  background: #fee2e2 !important;
+  color: #b91c1c !important;
+}
+.check-in-button:not(.checked-in) {
+  background: #22c55e !important;
+  color: #fff !important;
+}

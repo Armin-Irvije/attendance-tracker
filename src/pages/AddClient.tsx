@@ -82,7 +82,7 @@ export default function AddClient() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     // Validation
     if (!formData.name.trim()) {
       toast.error("Client name is required");
@@ -107,13 +107,13 @@ export default function AddClient() {
 
     // Get existing clients from localStorage
     const existingClients = JSON.parse(localStorage.getItem('clients') || '[]');
-    
+
     // Add new client to the list
     const updatedClients = [...existingClients, newClient];
-    
+
     // Save to localStorage
     localStorage.setItem('clients', JSON.stringify(updatedClients));
-    
+
     // Show success message and navigate back to dashboard
     toast.success(`${newClient.name} has been added as a client`);
     navigate('/dashboard');
@@ -128,7 +128,7 @@ export default function AddClient() {
         </header>
 
         <form onSubmit={handleSubmit} className="add-client-form">
-          
+
 
           <div className="form-sections">
             {/* Personal Information Section */}
@@ -153,10 +153,24 @@ export default function AddClient() {
                     />
                   </div>
                 </div>
+                <div className="form-field">
+                  <Label htmlFor="parent-Name" className="form-field-label">
+                    Parent Name
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="parent-name"
+                      name="parent-name"
+                      onChange={handleInputChange}
+                      className="form-field-input"
+                      placeholder="Parent Name"
+                    ></Input>
+                  </div>
+                </div>
 
                 <div className="form-field">
                   <Label htmlFor="email" className="form-field-label">
-                    Email Address
+                    Parent Email Address
                   </Label>
                   <div className="relative">
                     <MailIcon className="form-field-icon h-4 w-4" />
@@ -206,6 +220,7 @@ export default function AddClient() {
                     />
                   </div>
                 </div>
+
               </div>
             </section>
 
