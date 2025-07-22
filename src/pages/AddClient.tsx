@@ -23,12 +23,14 @@ interface Client {
     thursday: boolean;
     friday: boolean;
   };
+  parentName?: string;
 }
 
 export default function AddClient() {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     name: '',
+    parentName: '',
     email: '',
     phone: '',
     location: '',
@@ -89,6 +91,11 @@ export default function AddClient() {
       return;
     }
 
+    if (!formData.parentName.trim()) {
+      toast.error("Parent name is required");
+      return;
+    }
+
     if (selectedDays.length === 0) {
       toast.error("Please select at least one day for the client's schedule");
       return;
@@ -102,7 +109,8 @@ export default function AddClient() {
       email: formData.email.trim(),
       phone: formData.phone.trim(),
       location: formData.location.trim(),
-      schedule: schedule
+      schedule: schedule,
+      parentName: formData.parentName.trim(),
     };
 
     // Get existing clients from localStorage
@@ -154,17 +162,18 @@ export default function AddClient() {
                   </div>
                 </div>
                 <div className="form-field">
-                  <Label htmlFor="parent-Name" className="form-field-label">
-                    Parent Name
+                  <Label htmlFor="parentName" className="form-field-label">
+                    Parent Name <span className="form-field-required">*</span>
                   </Label>
                   <div className="relative">
                     <Input
-                      id="parent-name"
-                      name="parent-name"
+                      id="parentName"
+                      name="parentName"
+                      value={formData.parentName}
                       onChange={handleInputChange}
                       className="form-field-input"
                       placeholder="Parent Name"
-                    ></Input>
+                    />
                   </div>
                 </div>
 
