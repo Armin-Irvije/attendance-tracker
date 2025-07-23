@@ -114,17 +114,16 @@ export default function ClientPage() {
     // Iterate through all days in the month
     for (let date = new Date(monthStart); date <= monthEnd; date.setDate(date.getDate() + 1)) {
       const dayName = date.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+      const dateStr = date.toISOString().split('T')[0];
+      const attendanceRecord = client.attendance?.[dateStr];
       
       if (clientSchedule[dayName as keyof typeof clientSchedule]) {
         daysScheduled++;
-        
-        const dateStr = date.toISOString().split('T')[0];
-        const attendanceRecord = client.attendance?.[dateStr];
-        
-        if (attendanceRecord?.attended) {
-          daysAttended++;
-          totalHours += attendanceRecord.hours;
-        }
+      }
+      // Count as attended if attended, regardless of schedule
+      if (attendanceRecord?.attended) {
+        daysAttended++;
+        totalHours += attendanceRecord.hours;
       }
     }
     
@@ -197,7 +196,7 @@ export default function ClientPage() {
 
   // Handle attendance click
   const handleAttendanceClick = (day: CalendarDay) => {
-    if (!day.isScheduled || !client) return;
+    if (!client) return;
 
     const updatedClient = { ...client };
     if (!updatedClient.attendance) {
@@ -437,12 +436,12 @@ export default function ClientPage() {
               <Card
                 key={index}
                 className={`calendar-day ${
-                  !day.isScheduled 
-                    ? "calendar-day-unscheduled" 
-                    : day.attended 
-                      ? "calendar-day-attended" 
-                      : "calendar-day-absent"
-                } ${day.isScheduled ? "calendar-day-clickable" : ""}`}
+                  day.attended
+                    ? "calendar-day-attended"
+                    : day.isScheduled
+                      ? "calendar-day-absent"
+                      : "calendar-day-unscheduled"
+                } calendar-day-clickable`}
                 onClick={() => handleAttendanceClick(day)}
               >
                 <CardContent className="calendar-day-content">
@@ -451,36 +450,29 @@ export default function ClientPage() {
                     <span className="calendar-day-name">{day.dayName}</span>
                   </div>
                   <div className="calendar-day-status">
-                    {!day.isScheduled ? (
-                      <span className="unscheduled-text">Not scheduled</span>
+                    {day.attended ? (
+                      <>
+                        <div className={`status-indicator status-indicator-attended`}>
+                          <CheckIcon className="h-3 w-3 text-white" />
+                        </div>
+                        <span>{day.hours} hours</span>
+                      </>
                     ) : (
                       <>
-                        <div
-                          className={`status-indicator ${
-                            day.attended
-                              ? "status-indicator-attended"
-                              : "status-indicator-absent"
-                          }`}
-                        >
-                          {day.attended ? (
-                            <CheckIcon className="h-3 w-3 text-white" />
-                          ) : (
-                            <XIcon className="h-3 w-3 text-white" />
-                          )}
+                        <div className={`status-indicator status-indicator-absent`}>
+                          <XIcon className="h-3 w-3 text-white" />
                         </div>
-                        {day.attended ? (
-                          <span>{day.hours} hours</span>
-                        ) : (
+                        {day.isScheduled ? (
                           <span>Absent</span>
+                        ) : (
+                          <span className="unscheduled-text">Unscheduled</span>
                         )}
                       </>
                     )}
+                  </div> 
+                  <div className="click-hint">
+                    Click to toggle
                   </div>
-                  {day.isScheduled && (
-                    <div className="click-hint">
-                      Click to toggle
-                    </div>
-                  )}
                 </CardContent>
               </Card>
             ) : (
