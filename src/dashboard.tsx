@@ -130,10 +130,22 @@ export default function Dashboard() {
     .sort((a, b) => {
       const aScheduledToday = a.schedule[todayDayName as keyof typeof a.schedule];
       const bScheduledToday = b.schedule[todayDayName as keyof typeof b.schedule];
+      const aCheckedIn = a.attendance && a.attendance[todayDateStr]?.attended;
+      const bCheckedIn = b.attendance && b.attendance[todayDateStr]?.attended;
 
+      // First priority: Scheduled but not checked in
+      if (aScheduledToday && !aCheckedIn && !(bScheduledToday && !bCheckedIn)) return -1;
+      if (bScheduledToday && !bCheckedIn && !(aScheduledToday && !aCheckedIn)) return 1;
+
+      // Second priority: Scheduled and checked in
+      if (aScheduledToday && aCheckedIn && !(bScheduledToday && bCheckedIn)) return -1;
+      if (bScheduledToday && bCheckedIn && !(aScheduledToday && aCheckedIn)) return 1;
+
+      // Third priority: Unscheduled
       if (aScheduledToday && !bScheduledToday) return -1;
-      if (!aScheduledToday && bScheduledToday) return 1;
+      if (bScheduledToday && !aScheduledToday) return 1;
 
+      // Finally, sort alphabetically
       return a.name.localeCompare(b.name);
     });
 

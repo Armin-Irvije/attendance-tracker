@@ -27,6 +27,7 @@ interface Client {
     [date: string]: {
       attended: boolean;
       hours: number;
+      excused?: boolean;
     };
   };
   paymentStatus?: {
@@ -205,26 +206,41 @@ export default function ClientPage() {
 
     const currentRecord = updatedClient.attendance[day.dateStr];
     
-    if (!currentRecord || !currentRecord.attended) {
-      // Mark as attended with default 2 hours
+    if (!currentRecord) {
+      // First click: 2 hours
       updatedClient.attendance[day.dateStr] = {
         attended: true,
-        hours: 2
+        hours: 2,
+        excused: false
+      };
+    } else if (currentRecord.attended && currentRecord.hours === 2) {
+      // Second click: 3 hours
+      updatedClient.attendance[day.dateStr] = {
+        attended: true,
+        hours: 3,
+        excused: false
+      };
+    } else if (currentRecord.attended && currentRecord.hours === 3) {
+      // Third click: Excused absent
+      updatedClient.attendance[day.dateStr] = {
+        attended: false,
+        hours: 0,
+        excused: true
+      };
+    } else if (!currentRecord.attended && currentRecord.excused) {
+      // Fourth click: Unexcused absent
+      updatedClient.attendance[day.dateStr] = {
+        attended: false,
+        hours: 0,
+        excused: false
       };
     } else {
-      // Cycle through hours: 2 -> 3 -> absent
-      if (currentRecord.hours === 2) {
-        updatedClient.attendance[day.dateStr] = {
-          attended: true,
-          hours: 3
-        };
-      } else {
-        // Mark as absent
-        updatedClient.attendance[day.dateStr] = {
-          attended: false,
-          hours: 0
-        };
-      }
+      // Fifth click (and beyond): Back to 2 hours
+      updatedClient.attendance[day.dateStr] = {
+        attended: true,
+        hours: 2,
+        excused: false
+      };
     }
 
     // Save to localStorage
@@ -439,7 +455,9 @@ export default function ClientPage() {
                   day.attended
                     ? "calendar-day-attended"
                     : day.isScheduled
-                      ? "calendar-day-absent"
+                      ? (client?.attendance?.[day.dateStr]?.excused 
+                          ? "calendar-day-excused" 
+                          : "calendar-day-absent")
                       : "calendar-day-unscheduled"
                 } calendar-day-clickable`}
                 onClick={() => handleAttendanceClick(day)}
@@ -463,13 +481,13 @@ export default function ClientPage() {
                           <XIcon className="h-3 w-3 text-white" />
                         </div>
                         {day.isScheduled ? (
-                          <span>Absent</span>
+                          <span>{client?.attendance?.[day.dateStr]?.excused ? "Excused" : "Unexcused"}</span>
                         ) : (
                           <span className="unscheduled-text">Unscheduled</span>
                         )}
                       </>
                     )}
-                  </div> 
+                  </div>
                   <div className="click-hint">
                     Click to toggle
                   </div>
@@ -489,8 +507,9 @@ export default function ClientPage() {
             <ul>
               <li>Click on a scheduled day to mark as attended (2 hours)</li>
               <li>Click again to change to 3 hours</li>
-              <li>Click once more to mark as absent</li>
-              <li>Only scheduled days can be clicked</li>
+              <li>Click once more to mark as excused absent</li>
+              <li>Click once more to mark as unexcused absent</li>
+              <li>All days can be clicked</li>
             </ul>
           </CardContent>
         </Card>

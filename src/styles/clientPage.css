@@ -213,6 +213,11 @@
   background-color: #fee2e2;
   border: 2px solid #fca5a5;
 }
+
+.calendar-day-excused {
+  background-color: #fef3c7;
+  border: 2px solid #fbbf24;
+}
 .unscheduled-text {
   color: #111;
 }
