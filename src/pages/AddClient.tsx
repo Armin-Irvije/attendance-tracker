@@ -166,6 +166,7 @@ export default function AddClient() {
                     Parent Name <span className="form-field-required">*</span>
                   </Label>
                   <div className="relative">
+                    <UserIcon className="form-field-icon h-4 w-4" />
                     <Input
                       id="parentName"
                       name="parentName"

@@ -75,6 +75,7 @@ export default function ClientPage() {
     thursday: false,
     friday: false,
   });
+  const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null);
 
   // Get the start of the week (Monday)
   function getWeekStart(date: Date): Date {
@@ -325,6 +326,33 @@ export default function ClientPage() {
     navigate('/dashboard');
   };
 
+  // New: handle attendance selection
+  const handleAttendanceSelect = (day: CalendarDay, option: '2h' | '3h' | 'excused' | 'unexcused') => {
+    if (!client) return;
+    const updatedClient = { ...client };
+    if (!updatedClient.attendance) {
+      updatedClient.attendance = {};
+    }
+    if (option === '2h') {
+      updatedClient.attendance[day.dateStr] = { attended: true, hours: 2, excused: false };
+    } else if (option === '3h') {
+      updatedClient.attendance[day.dateStr] = { attended: true, hours: 3, excused: false };
+    } else if (option === 'excused') {
+      updatedClient.attendance[day.dateStr] = { attended: false, hours: 0, excused: true };
+    } else if (option === 'unexcused') {
+      updatedClient.attendance[day.dateStr] = { attended: false, hours: 0, excused: false };
+    }
+    // Save to localStorage
+    const savedClients = JSON.parse(localStorage.getItem('clients') || '[]');
+    const clientIndex = savedClients.findIndex((c: Client) => c.id === client.id);
+    if (clientIndex !== -1) {
+      savedClients[clientIndex] = updatedClient;
+      localStorage.setItem('clients', JSON.stringify(savedClients));
+    }
+    setClient(updatedClient);
+    setSelectedDayIndex(null); // Dismiss selection UI
+  };
+
   if (isLoading) {
     return (
       <div className="loading-container">
@@ -448,54 +476,139 @@ export default function ClientPage() {
 
         <div className="week-grid">
           {weekDays.map((day, index) => (
-            day ? (
-              <Card
-                key={index}
-                className={`calendar-day ${
-                  day.attended
-                    ? "calendar-day-attended"
-                    : day.isScheduled
-                      ? (client?.attendance?.[day.dateStr]?.excused 
-                          ? "calendar-day-excused" 
-                          : "calendar-day-absent")
-                      : "calendar-day-unscheduled"
-                } calendar-day-clickable`}
-                onClick={() => handleAttendanceClick(day)}
-              >
-                <CardContent className="calendar-day-content">
-                  <div className="calendar-day-header">
-                    <span className="calendar-day-number">{day.dayNumber}</span>
-                    <span className="calendar-day-name">{day.dayName}</span>
-                  </div>
-                  <div className="calendar-day-status">
-                    {day.attended ? (
-                      <>
-                        <div className={`status-indicator status-indicator-attended`}>
-                          <CheckIcon className="h-3 w-3 text-white" />
+            <div key={index} className="week-grid-cell">
+              {day ? (
+                day.isScheduled && selectedDayIndex === index ? (
+                  <>
+                    <Card
+                      className={`calendar-day calendar-day-clickable calendar-day-has-menu`}
+                      style={{ zIndex: 2, position: 'relative' }}
+                      onClick={() => setSelectedDayIndex(index)}
+                    >
+                      <CardContent className="calendar-day-content">
+                        <div className="calendar-day-header">
+                          <span className="calendar-day-number">{day.dayNumber}</span>
+                          <span className="calendar-day-name">{day.dayName}</span>
                         </div>
-                        <span>{day.hours} hours</span>
-                      </>
-                    ) : (
-                      <>
-                        <div className={`status-indicator status-indicator-absent`}>
-                          <XIcon className="h-3 w-3 text-white" />
+                        <div className="calendar-day-status">
+                          {day.attended ? (
+                            <>
+                              <div className={`status-indicator status-indicator-attended`}>
+                                <CheckIcon className="h-3 w-3 text-white" />
+                              </div>
+                              <span>{day.hours} hours</span>
+                            </>
+                          ) : (
+                            <>
+                              <div className={`status-indicator status-indicator-absent`}>
+                                <XIcon className="h-3 w-3 text-white" />
+                              </div>
+                              {day.isScheduled ? (
+                                <span>{client?.attendance?.[day.dateStr]?.excused ? "Excused" : "Unexcused"}</span>
+                              ) : (
+                                <span className="unscheduled-text">Unscheduled</span>
+                              )}
+                            </>
+                          )}
                         </div>
-                        {day.isScheduled ? (
-                          <span>{client?.attendance?.[day.dateStr]?.excused ? "Excused" : "Unexcused"}</span>
+                        <div className="click-hint">
+                          Click to select
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <div className="attendance-selection-menu attendance-selection-menu-dropdown">
+                      <button
+                        className={`attendance-option-btn${client?.attendance?.[day.dateStr]?.attended && client?.attendance?.[day.dateStr]?.hours === 2 ? ' selected' : ''}`}
+                        onClick={() => handleAttendanceSelect(day, '2h')}
+                        style={{ background: '#d1fae5', border: '2px solid #6ee7b7', color: '#111', marginBottom: 8 }}
+                      >
+                        2 hours
+                      </button>
+                      <button
+                        className={`attendance-option-btn${client?.attendance?.[day.dateStr]?.attended && client?.attendance?.[day.dateStr]?.hours === 3 ? ' selected' : ''}`}
+                        onClick={() => handleAttendanceSelect(day, '3h')}
+                        style={{ background: '#d1fae5', border: '2px solid #6ee7b7', color: '#111', marginBottom: 8 }}
+                      >
+                        3 hours
+                      </button>
+                      <button
+                        className={`attendance-option-btn${client?.attendance?.[day.dateStr]?.excused ? ' selected' : ''}`}
+                        onClick={() => handleAttendanceSelect(day, 'excused')}
+                        style={{ background: '#fef3c7', border: '2px solid #fbbf24', color: '#111', marginBottom: 8 }}
+                      >
+                        Excused
+                      </button>
+                      <button
+                        className={`attendance-option-btn${client?.attendance?.[day.dateStr] && !client?.attendance?.[day.dateStr]?.attended && !client?.attendance?.[day.dateStr]?.excused ? ' selected' : ''}`}
+                        onClick={() => handleAttendanceSelect(day, 'unexcused')}
+                        style={{ background: '#fee2e2', border: '2px solid #fca5a5', color: '#111' }}
+                      >
+                        Unexcused
+                      </button>
+                      <button
+                        className="attendance-option-cancel"
+                        style={{ marginTop: 12, background: '#f3f4f6', border: '1px solid #e5e7eb', color: '#111' }}
+                        onClick={() => setSelectedDayIndex(null)}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <Card
+                    className={`calendar-day ${
+                      day.attended
+                        ? "calendar-day-attended"
+                        : day.isScheduled
+                          ? (client?.attendance?.[day.dateStr]?.excused 
+                              ? "calendar-day-excused" 
+                              : "calendar-day-absent")
+                          : "calendar-day-unscheduled"
+                    } calendar-day-clickable`}
+                    onClick={() => {
+                      if (day.isScheduled) {
+                        setSelectedDayIndex(index);
+                      } else {
+                        handleAttendanceClick(day);
+                      }
+                    }}
+                  >
+                    <CardContent className="calendar-day-content">
+                      <div className="calendar-day-header">
+                        <span className="calendar-day-number">{day.dayNumber}</span>
+                        <span className="calendar-day-name">{day.dayName}</span>
+                      </div>
+                      <div className="calendar-day-status">
+                        {day.attended ? (
+                          <>
+                            <div className={`status-indicator status-indicator-attended`}>
+                              <CheckIcon className="h-3 w-3 text-white" />
+                            </div>
+                            <span>{day.hours} hours</span>
+                          </>
                         ) : (
-                          <span className="unscheduled-text">Unscheduled</span>
+                          <>
+                            <div className={`status-indicator status-indicator-absent`}>
+                              <XIcon className="h-3 w-3 text-white" />
+                            </div>
+                            {day.isScheduled ? (
+                              <span>{client?.attendance?.[day.dateStr]?.excused ? "Excused" : "Unexcused"}</span>
+                            ) : (
+                              <span className="unscheduled-text">Unscheduled</span>
+                            )}
+                          </>
                         )}
-                      </>
-                    )}
-                  </div>
-                  <div className="click-hint">
-                    Click to toggle
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <div key={index} className="calendar-day-empty" />
-            )
+                      </div>
+                      <div className="click-hint">
+                        {day.isScheduled ? 'Click to select' : 'Click to toggle'}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              ) : (
+                <div className="calendar-day-empty" />
+              )}
+            </div>
           ))}
         </div>
       </div>
