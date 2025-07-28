@@ -7,6 +7,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import '../styles/clientPage.css';
+import { toast } from 'sonner';
 
 interface Client {
   id: string;
@@ -33,6 +34,10 @@ interface Client {
   paymentStatus?: {
     [month: string]: "Paid" | "Unpaid";
   };
+  strikes?: {
+    [month: string]: number;
+  };
+  createdAt?: string; // ISO date string when client was created
 }
 
 interface AttendanceSummary {
@@ -76,6 +81,8 @@ export default function ClientPage() {
     friday: false,
   });
   const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null);
+  const [strikes, setStrikes] = useState<number>(0);
+  const [excusedAbsences, setExcusedAbsences] = useState<number>(0);
 
   // Get the start of the week (Monday)
   function getWeekStart(date: Date): Date {
@@ -107,14 +114,18 @@ export default function ClientPage() {
     const monthStart = new Date(currentWeek.getFullYear(), currentWeek.getMonth(), 1);
     const monthEnd = new Date(currentWeek.getFullYear(), currentWeek.getMonth() + 1, 0);
     
+    // Get client creation date, default to month start if not set
+    const clientCreatedAt = client.createdAt ? new Date(client.createdAt) : monthStart;
+    const effectiveStartDate = clientCreatedAt > monthStart ? clientCreatedAt : monthStart;
+    
     let daysScheduled = 0;
     let daysAttended = 0;
     let totalHours = 0;
     
     const clientSchedule = client.schedule || {};
 
-    // Iterate through all days in the month
-    for (let date = new Date(monthStart); date <= monthEnd; date.setDate(date.getDate() + 1)) {
+    // Iterate through all days in the month from when client was created
+    for (let date = new Date(effectiveStartDate); date <= monthEnd; date.setDate(date.getDate() + 1)) {
       const dayName = date.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
       const dateStr = date.toISOString().split('T')[0];
       const attendanceRecord = client.attendance?.[dateStr];
@@ -138,6 +149,125 @@ export default function ClientPage() {
       totalHours
     };
   }
+
+  // Calculate strikes for current month
+  const calculateStrikes = (client: Client, currentWeek: Date): number => {
+    const monthStart = new Date(currentWeek.getFullYear(), currentWeek.getMonth(), 1);
+    const monthEnd = new Date(currentWeek.getFullYear(), currentWeek.getMonth() + 1, 0);
+    
+    // Get client creation date, default to month start if not set
+    const clientCreatedAt = client.createdAt ? new Date(client.createdAt) : monthStart;
+    const effectiveStartDate = clientCreatedAt > monthStart ? clientCreatedAt : monthStart;
+    
+    let unexcusedAbsences = 0;
+    const clientSchedule = client.schedule || {};
+
+    // Iterate through all days in the month from when client was created
+    for (let date = new Date(effectiveStartDate); date <= monthEnd; date.setDate(date.getDate() + 1)) {
+      const dayName = date.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+      const dateStr = date.toISOString().split('T')[0];
+      const attendanceRecord = client.attendance?.[dateStr];
+      
+      // Check if day was scheduled but student was absent without excuse
+      if (clientSchedule[dayName as keyof typeof clientSchedule] && 
+          attendanceRecord && 
+          !attendanceRecord.attended && 
+          !attendanceRecord.excused) {
+        unexcusedAbsences++;
+      }
+    }
+    
+    return unexcusedAbsences;
+  };
+
+  // Calculate excused absences for current month
+  const calculateExcusedAbsences = (client: Client, currentWeek: Date): number => {
+    const monthStart = new Date(currentWeek.getFullYear(), currentWeek.getMonth(), 1);
+    const monthEnd = new Date(currentWeek.getFullYear(), currentWeek.getMonth() + 1, 0);
+    
+    // Get client creation date, default to month start if not set
+    const clientCreatedAt = client.createdAt ? new Date(client.createdAt) : monthStart;
+    const effectiveStartDate = clientCreatedAt > monthStart ? clientCreatedAt : monthStart;
+    
+    let excusedAbsences = 0;
+    const clientSchedule = client.schedule || {};
+
+    // Iterate through all days in the month from when client was created
+    for (let date = new Date(effectiveStartDate); date <= monthEnd; date.setDate(date.getDate() + 1)) {
+      const dayName = date.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
+      const dateStr = date.toISOString().split('T')[0];
+      const attendanceRecord = client.attendance?.[dateStr];
+      
+      // Check if day was scheduled but student was absent with excuse
+      if (clientSchedule[dayName as keyof typeof clientSchedule] && 
+          attendanceRecord && 
+          !attendanceRecord.attended && 
+          attendanceRecord.excused) {
+        excusedAbsences++;
+      }
+    }
+    
+    return excusedAbsences;
+  };
+
+  // Check for strike warnings and send notifications
+  const checkStrikeWarnings = (newStrikes: number, client: Client) => {
+    if (newStrikes === 2) {
+      showStrikeWarning(2, client);
+    } else if (newStrikes === 3) {
+      showStrikeWarning(3, client);
+    }
+  };
+
+  // Show strike warning notification
+  const showStrikeWarning = (strikeCount: number, client: Client) => {
+    const month = getMonthName(currentWeekStart);
+    const warningMessage = `⚠️ ATTENDANCE WARNING: ${client.name} has ${strikeCount} unexcused absence${strikeCount > 1 ? 's' : ''} this month (${month}).`;
+    
+    // Show browser notification
+    if (Notification.permission === 'granted') {
+      new Notification('Attendance Warning', {
+        body: warningMessage,
+        icon: '/favicon.ico'
+      });
+    }
+    
+    // Show toast notification
+    toast.warning(warningMessage, {
+      duration: 5000,
+      action: {
+        label: 'Send Email',
+        onClick: () => sendParentEmail(client, strikeCount)
+      }
+    });
+  };
+
+  // Send email to parent
+  const sendParentEmail = (client: Client, strikeCount: number) => {
+    if (!client.email) {
+      toast.error('No parent email address found for this client.');
+      return;
+    }
+
+    const month = getMonthName(currentWeekStart);
+    const subject = `Attendance Warning - ${client.name}`;
+    const body = `Dear Parent/Guardian,
+
+This is an automated attendance notification for ${client.name}.
+
+${client.name} has ${strikeCount} unexcused absence${strikeCount > 1 ? 's' : ''} this month (${month}).
+
+Please ensure regular attendance to avoid further consequences.
+
+Best regards,
+Attendance System`;
+
+    // Open email client with pre-filled content
+    const mailtoLink = `mailto:${client.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    window.open(mailtoLink);
+    
+    toast.success('Email client opened. Please send the email manually.');
+  };
 
   useEffect(() => {
     const loadClient = () => {
@@ -164,6 +294,19 @@ export default function ClientPage() {
 
     const monthlyStats = calculateMonthlyStats(client, currentWeekStart);
     setSummary(monthlyStats);
+  }, [client, currentWeekStart]);
+
+  // Update strikes when attendance changes
+  useEffect(() => {
+    if (!client) return;
+    
+    const currentStrikes = calculateStrikes(client, currentWeekStart);
+    const currentExcusedAbsences = calculateExcusedAbsences(client, currentWeekStart);
+    setStrikes(currentStrikes);
+    setExcusedAbsences(currentExcusedAbsences);
+    
+    // Check for warnings (only for unexcused absences)
+    checkStrikeWarnings(currentStrikes, client);
   }, [client, currentWeekStart]);
 
   // Generate 7 days of the current week
@@ -454,7 +597,72 @@ export default function ClientPage() {
             <p className="stat-time-period">{summary.monthName}</p>
           </CardContent>
         </Card>
+
+        <Card className={`stat-card ${strikes > 0 ? 'strike-warning' : ''}`}>
+          <CardHeader className="stat-card-header">
+            <CardDescription className="stat-card-description">
+              Unexcused Absences
+            </CardDescription>
+            <CardTitle className="stat-card-title">
+              {strikes}
+              <XIcon className="h-5 w-5 ml-2 text-red-500" />
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="stat-card-content">
+            <p className="stat-time-period">{summary.monthName}</p>
+            {strikes > 0 && (
+              <div className="strike-actions">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => sendParentEmail(client, strikes)}
+                  className="send-email-btn"
+                >
+                  Send Parent Email
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="stat-card">
+          <CardHeader className="stat-card-header">
+            <CardDescription className="stat-card-description">
+              Excused Absences
+            </CardDescription>
+            <CardTitle className="stat-card-title">
+              {excusedAbsences}
+              <CheckIcon className="h-5 w-5 ml-2 text-yellow-500" />
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="stat-card-content">
+            <p className="stat-time-period">{summary.monthName}</p>
+          </CardContent>
+        </Card>
       </div>
+
+      {strikes >= 2 && (
+        <Card className="strike-warning-card">
+          <CardHeader>
+            <CardTitle className="strike-warning-title">
+              ⚠️ Attendance Warning
+            </CardTitle>
+            <CardDescription>
+              {client.name} has {strikes} unexcused absence{strikes > 1 ? 's' : ''} this month.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="strike-warning-actions">
+              <Button 
+                variant="outline" 
+                onClick={() => sendParentEmail(client, strikes)}
+              >
+                Send Parent Email
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="calendar-section">
         <div className="calendar-header">

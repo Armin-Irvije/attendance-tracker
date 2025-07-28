@@ -87,14 +87,26 @@
 /* Stats grid */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(1, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 1rem;
   margin-bottom: 2rem;
 }
 
-@media (min-width: 768px) {
+@media (max-width: 1024px) {
   .stats-grid {
     grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .stats-grid {
+    grid-template-columns: repeat(1, 1fr);
   }
 }
 
@@ -550,6 +562,47 @@ button:hover,
 }
 .attendance-option-cancel:hover {
   background: #e5e7eb;
+}
+
+.strike-warning {
+  border-color: #ef4444;
+  background-color: #fef2f2;
+}
+
+.strike-warning-card {
+  margin-bottom: 2rem;
+  border: 2px solid #ef4444;
+  background-color: #fef2f2;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.strike-warning-title {
+  color: #dc2626;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.strike-warning-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.strike-actions {
+  margin-top: 0.5rem;
+}
+
+.send-email-btn {
+  font-size: 0.875rem;
+  padding: 0.25rem 0.5rem;
+  height: auto;
+}
+
+@media (max-width: 640px) {
+  .strike-warning-actions {
+    flex-direction: column;
+  }
 }
 
 .week-grid-cell {

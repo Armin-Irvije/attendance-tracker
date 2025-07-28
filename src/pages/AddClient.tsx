@@ -24,6 +24,7 @@ interface Client {
     friday: boolean;
   };
   parentName?: string;
+  createdAt?: string;
 }
 
 export default function AddClient() {
@@ -111,6 +112,7 @@ export default function AddClient() {
       location: formData.location.trim(),
       schedule: schedule,
       parentName: formData.parentName.trim(),
+      createdAt: new Date().toISOString(),
     };
 
     // Get existing clients from localStorage
