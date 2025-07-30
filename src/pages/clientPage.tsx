@@ -32,7 +32,7 @@ interface Client {
     };
   };
   paymentStatus?: {
-    [month: string]: "Paid" | "Unpaid";
+    [month: string]: "Funding" | "Not Funded";
   };
   strikes?: {
     [month: string]: number;
@@ -431,11 +431,11 @@ Attendance System`;
       updatedClient.paymentStatus = {};
     }
 
-    // Toggle Paid/Unpaid
-    if (updatedClient.paymentStatus[month] === "Paid") {
-      updatedClient.paymentStatus[month] = "Unpaid";
+    // Toggle Funding/Not Funded
+    if (updatedClient.paymentStatus[month] === "Funding") {
+      updatedClient.paymentStatus[month] = "Not Funded";
     } else {
-      updatedClient.paymentStatus[month] = "Paid";
+      updatedClient.paymentStatus[month] = "Funding";
     }
 
     // Save to localStorage
@@ -842,12 +842,12 @@ Attendance System`;
           Generate Report
         </Button>
         <Button onClick={handlePayment}>
-          {client.paymentStatus && client.paymentStatus[summary.monthName] === "Paid" ? (
+            {client.paymentStatus && client.paymentStatus[summary.monthName] === "Funding" ? (
             <XIcon className="mr-2 h-4 w-4" />
           ) : (
             <CheckIcon className="mr-2 h-4 w-4" />
-          )}
-          {client.paymentStatus && client.paymentStatus[summary.monthName] === "Paid" ? "Mark as Unpaid" : "Mark as Paid"}
+          )}  
+            {client.paymentStatus && client.paymentStatus[summary.monthName] === "Funding" ? "Mark as Not Funded" : "Mark as Funding"}
         </Button>
       </div>
     </div>

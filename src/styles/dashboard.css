@@ -506,13 +506,13 @@ button:hover,
   transition: all 0.2s ease;
 }
 
-.payment-status.paid {
+.payment-status.funding {
   background: #f0fdf4;
   color: #16a34a;
   border: 1px solid #bbf7d0;
 }
 
-.payment-status.unpaid {
+.payment-status.not-funded {
   background: #fef2f2;
   color: #dc2626;
   border: 1px solid #fecaca;

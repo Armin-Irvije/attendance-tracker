@@ -26,7 +26,7 @@ interface Client {
     };
   };
   paymentStatus?: {
-    [month: string]: "Paid" | "Unpaid";
+    [month: string]: "Funding" | "Not Funded";
   };
 }
 
@@ -211,8 +211,8 @@ export default function Dashboard() {
                   {client.email && <p className="client-email">{client.email}</p>}
 
                   <span className={`payment-status ${getPaymentStatus(client).toLowerCase()}`}>
-                    {getPaymentStatus(client) === "Paid" && (
-                      <span className="paid-icon-wrapper" title="Paid">
+                      {getPaymentStatus(client) === "Funding" && (      
+                      <span className="paid-icon-wrapper" title="Funding">
                         <DollarSignIcon className="paid-icon" />
                       </span>
                     )}
