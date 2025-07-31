@@ -9,6 +9,7 @@ import './styles/dashboard.css';
 import { useNavigate } from 'react-router-dom';
 import { toast } from "sonner";
 import DailyAttendance from "@/components/DailyAttendance";
+import { supabaseHelpers } from './supabase-client.js';
 
 interface Client {
   id: string;
@@ -40,14 +41,20 @@ export default function Dashboard() {
   const [selectedLocation, setSelectedLocation] = useState<string>("All Locations");
   const [searchTerm, setSearchTerm] = useState<string>('');
 
-  // Load clients from localStorage
+  // Load clients from Supabase
   useEffect(() => {
-    const loadClients = () => {
-      const savedClients = JSON.parse(localStorage.getItem('clients') || '[]');
-      setClients(savedClients);
-      const uniqueLocations = ["All Locations", ...Array.from(new Set(savedClients.map((c: Client) => c.location).filter(Boolean))) as string[]];
-      setLocations(uniqueLocations);
-      setIsLoading(false);
+    const loadClients = async () => {
+      try {
+        const clients = await supabaseHelpers.getClients();
+        setClients(clients);
+        const uniqueLocations = ["All Locations", ...Array.from(new Set(clients.map((c: Client) => c.location).filter(Boolean))) as string[]];
+        setLocations(uniqueLocations);
+      } catch (error) {
+        console.error('Error loading clients:', error);
+        toast.error('Error loading clients');
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     loadClients();
@@ -59,19 +66,23 @@ export default function Dashboard() {
   };
 
   // Handle client deletion
-  const handleDeleteClient = (clientId: string, event: React.MouseEvent) => {
+  const handleDeleteClient = async (clientId: string, event: React.MouseEvent) => {
     event.stopPropagation(); // Prevent triggering the client selection
 
     // Confirm deletion
     if (window.confirm('Are you sure you want to delete this client?')) {
-      // Remove client from state
-      const updatedClients = clients.filter(client => client.id !== clientId);
-      setClients(updatedClients);
+      try {
+        await supabaseHelpers.deleteClient(clientId);
+        
+        // Remove client from state
+        const updatedClients = clients.filter(client => client.id !== clientId);
+        setClients(updatedClients);
 
-      // Update localStorage
-      localStorage.setItem('clients', JSON.stringify(updatedClients));
-
-      toast.success('Client deleted successfully');
+        toast.success('Client deleted successfully');
+      } catch (error) {
+        console.error('Error deleting client:', error);
+        toast.error('Error deleting client');
+      }
     }
   };
 
