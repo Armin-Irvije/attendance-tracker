@@ -350,8 +350,9 @@ Attendance System`;
     if (!client) return;
 
     const currentRecord = client.attendance?.[day.dateStr];
+    console.log('Current attendance record:', currentRecord);
     
-    let status = 'absent';
+    let status = 'unexcused';
     let hours = 0;
     let excused = false;
     
@@ -367,7 +368,7 @@ Attendance System`;
       // Third click: Excused absent
       status = 'excused';
       excused = true;
-    } else if (!currentRecord.attended && currentRecord.excused) {
+    } else if (currentRecord.excused) {
       // Fourth click: Unexcused absent
       status = 'unexcused';
     } else {
@@ -376,6 +377,8 @@ Attendance System`;
       hours = 2;
     }
 
+    console.log('Updating attendance with:', { status, hours, excused });
+
     try {
       await supabaseHelpers.updateAttendance(client.id, day.dateStr, {
         status,
@@ -383,8 +386,11 @@ Attendance System`;
         excused
       });
       
+      console.log('Attendance updated successfully');
+      
       // Reload client data to get updated attendance
       const updatedClient = await supabaseHelpers.getClientWithAttendance(client.id);
+      console.log('Updated client data:', updatedClient);
       setClient(updatedClient);
     } catch (error) {
       console.error('Error updating attendance:', error);
@@ -463,8 +469,10 @@ Attendance System`;
   const handleAttendanceSelect = async (day: CalendarDay, option: '2h' | '3h' | 'excused' | 'unexcused') => {
     if (!client) return;
     
+    console.log('Handling attendance selection:', option, 'for day:', day.dateStr);
+    
     try {
-      let status = 'absent';
+      let status = 'unexcused';
       let hours = 0;
       let excused = false;
       
@@ -481,14 +489,19 @@ Attendance System`;
         status = 'unexcused';
       }
       
+      console.log('Updating attendance with:', { status, hours, excused });
+      
       await supabaseHelpers.updateAttendance(client.id, day.dateStr, {
         status,
         hours,
         excused
       });
       
+      console.log('Attendance selection updated successfully');
+      
       // Reload client data to get updated attendance
       const updatedClient = await supabaseHelpers.getClientWithAttendance(client.id);
+      console.log('Updated client data after selection:', updatedClient);
       setClient(updatedClient);
       setSelectedDayIndex(null); // Dismiss selection UI
     } catch (error) {

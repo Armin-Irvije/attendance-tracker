@@ -84,32 +84,71 @@ export const supabaseHelpers = {
   async updateAttendance(clientId, date, attendanceData) {
     const { status, hours, excused } = attendanceData;
     
+    console.log('updateAttendance called with:', { clientId, date, attendanceData });
+    
     // Ensure the status is properly set based on the data
     let finalStatus = status;
+    let finalHours = hours || 0;
+    let finalExcused = excused || false;
+    
     if (status === 'present' && hours > 0) {
       finalStatus = 'present';
-    } else if (excused) {
+      finalHours = hours;
+      finalExcused = false;
+    } else if (status === 'excused') {
       finalStatus = 'excused';
-    } else if (status === 'unexcused') {
+      finalHours = 0;
+      finalExcused = true;
+    } else if (status === 'unexcused' || status === 'absent') {
       finalStatus = 'unexcused';
+      finalHours = 0;
+      finalExcused = false;
     } else {
       finalStatus = 'unexcused';
+      finalHours = 0;
+      finalExcused = false;
     }
     
-    const { data, error } = await supabase
-      .from('attendance')
-      .upsert([{
-        client_id: clientId,
-        date: date,
-        status: finalStatus,
-        hours: hours || 0,
-        excused: excused || false
-      }])
-      .select()
-      .single();
+    console.log('Final attendance data to save:', { finalStatus, finalHours, finalExcused });
     
-    if (error) throw error;
-    return data;
+    // Try to delete existing record first, then insert new one
+    try {
+      // First, delete any existing record for this client and date
+      const { error: deleteError } = await supabase
+        .from('attendance')
+        .delete()
+        .eq('client_id', clientId)
+        .eq('date', date);
+      
+      if (deleteError) {
+        console.error('Error deleting existing attendance:', deleteError);
+        // Continue anyway, the record might not exist
+      }
+      
+      // Now insert the new record
+      const { data, error } = await supabase
+        .from('attendance')
+        .insert([{
+          client_id: clientId,
+          date: date,
+          status: finalStatus,
+          hours: finalHours,
+          excused: finalExcused
+        }])
+        .select()
+        .single();
+      
+      if (error) {
+        console.error('Error inserting attendance:', error);
+        throw error;
+      }
+      
+      console.log('Attendance saved successfully:', data);
+      return data;
+    } catch (error) {
+      console.error('Error in updateAttendance:', error);
+      throw error;
+    }
   },
 
   // Get monthly stats for a client
@@ -163,6 +202,8 @@ export const supabaseHelpers = {
       this.getClientAttendance(clientId)
     ]);
     
+    console.log('Raw attendance data:', attendanceData);
+    
     // Convert attendance data to the format expected by the UI
     const attendanceMap = {};
     attendanceData.forEach((record) => {
@@ -173,6 +214,8 @@ export const supabaseHelpers = {
       };
     });
     
+    console.log('Converted attendance map:', attendanceMap);
+    
     // Also convert payment_status from JSONB to the format expected by UI
     const paymentStatus = client.payment_status || {};
     
@@ -181,5 +224,21 @@ export const supabaseHelpers = {
       attendance: attendanceMap,
       paymentStatus: paymentStatus
     };
+  },
+
+  // Clear attendance for a specific date (for testing)
+  async clearAttendance(clientId, date) {
+    const { error } = await supabase
+      .from('attendance')
+      .delete()
+      .eq('client_id', clientId)
+      .eq('date', date);
+    
+    if (error) {
+      console.error('Error clearing attendance:', error);
+      throw error;
+    }
+    
+    console.log('Attendance cleared for:', { clientId, date });
   }
 }; 

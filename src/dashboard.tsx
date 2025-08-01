@@ -24,14 +24,13 @@ interface Client {
     [date: string]: {
       attended: boolean;
       hours: number;
+      excused?: boolean;
     };
   };
   paymentStatus?: {
     [month: string]: "Funding" | "Not Funded";
   };
 }
-
-
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -46,8 +45,19 @@ export default function Dashboard() {
     const loadClients = async () => {
       try {
         const clients = await supabaseHelpers.getClients();
-        setClients(clients);
-        const uniqueLocations = ["All Locations", ...Array.from(new Set(clients.map((c: Client) => c.location).filter(Boolean))) as string[]];
+        // Load attendance data for each client
+        const clientsWithAttendance = await Promise.all(
+          clients.map(async (client) => {
+            try {
+              return await supabaseHelpers.getClientWithAttendance(client.id);
+            } catch (error) {
+              console.error(`Error loading attendance for client ${client.id}:`, error);
+              return client;
+            }
+          })
+        );
+        setClients(clientsWithAttendance);
+        const uniqueLocations = ["All Locations", ...Array.from(new Set(clientsWithAttendance.map((c: Client) => c.location).filter(Boolean))) as string[]];
         setLocations(uniqueLocations);
       } catch (error) {
         console.error('Error loading clients:', error);
@@ -73,7 +83,7 @@ export default function Dashboard() {
     if (window.confirm('Are you sure you want to delete this client?')) {
       try {
         await supabaseHelpers.deleteClient(clientId);
-        
+
         // Remove client from state
         const updatedClients = clients.filter(client => client.id !== clientId);
         setClients(updatedClients);
@@ -91,8 +101,8 @@ export default function Dashboard() {
     navigate(`/client/${client.id}`);
   };
 
-  // Handle client check-in
-  const handleCheckIn = (client: Client, event: React.MouseEvent) => {
+  // Handle client check-in with Supabase
+  const handleCheckIn = async (client: Client, event: React.MouseEvent) => {
     event.stopPropagation(); // Prevent card click from navigating
 
     const today = new Date();
@@ -100,26 +110,43 @@ export default function Dashboard() {
     const dateStr = today.toISOString().split('T')[0];
 
     if (client.schedule[dayName as keyof typeof client.schedule]) {
-      const updatedClient = { ...client };
-      if (!updatedClient.attendance) {
-        updatedClient.attendance = {};
-      }
+      try {
+        const currentRecord = client.attendance?.[dateStr];
+        const alreadyCheckedIn = currentRecord?.attended;
+        
+        if (!alreadyCheckedIn) {
+          // Check in: 2 hours
+          await supabaseHelpers.updateAttendance(client.id, dateStr, {
+            status: 'present',
+            hours: 2,
+            excused: false
+          });
+          toast.success(`${client.name} has been checked in for today.`);
+        } else {
+          // Undo check-in - remove the attendance record entirely
+          await supabaseHelpers.updateAttendance(client.id, dateStr, {
+            status: 'unexcused',
+            hours: 0,
+            excused: false
+          });
+          toast.info(`${client.name}'s check-in for today has been undone.`);
+        }
 
-      const alreadyCheckedIn = updatedClient.attendance[dateStr]?.attended;
-      if (!alreadyCheckedIn) {
-        updatedClient.attendance[dateStr] = { attended: true, hours: 2 };
-        toast.success(`${client.name} has been checked in for today.`);
-      } else {
-        updatedClient.attendance[dateStr] = { attended: false, hours: 0 };
-        toast.info(`${client.name}'s check-in for today has been undone.`);
-      }
-
-      const savedClients = JSON.parse(localStorage.getItem('clients') || '[]');
-      const clientIndex = savedClients.findIndex((c: Client) => c.id === client.id);
-      if (clientIndex !== -1) {
-        savedClients[clientIndex] = updatedClient;
-        localStorage.setItem('clients', JSON.stringify(savedClients));
-        setClients(savedClients);
+        // Reload all clients to get updated data
+        const updatedClients = await Promise.all(
+          clients.map(async (c) => {
+            try {
+              return await supabaseHelpers.getClientWithAttendance(c.id);
+            } catch (error) {
+              console.error(`Error reloading client ${c.id}:`, error);
+              return c;
+            }
+          })
+        );
+        setClients(updatedClients);
+      } catch (error) {
+        console.error('Error updating attendance:', error);
+        toast.error('Error updating attendance');
       }
     } else {
       toast.info(`${client.name} is not scheduled for today.`);
@@ -222,7 +249,7 @@ export default function Dashboard() {
                   {client.email && <p className="client-email">{client.email}</p>}
 
                   <span className={`payment-status ${getPaymentStatus(client).toLowerCase()}`}>
-                      {getPaymentStatus(client) === "Funding" && (      
+                    {getPaymentStatus(client) === "Funding" && (
                       <span className="paid-icon-wrapper" title="Funding">
                         <DollarSignIcon className="paid-icon" />
                       </span>
@@ -239,11 +266,10 @@ export default function Dashboard() {
                 <Trash2Icon className="trash-icon" />
               </button>
               <button
-                className={`check-in-button${
-                  !client.schedule[todayDayName]
+                className={`check-in-button${!client.schedule[todayDayName]
                     ? ' check-in-faded' : client.attendance && client.attendance[todayDateStr]?.attended
-                    ? ' checked-in' : ''
-                }`}
+                      ? ' checked-in' : ''
+                  }`}
                 onClick={(e) => handleCheckIn(client, e)}
                 title={client.attendance && client.attendance[todayDateStr]?.attended ? "Undo check-in" : "Check in client"}
                 disabled={!client.schedule[todayDayName]}
