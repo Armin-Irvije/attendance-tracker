@@ -16,6 +16,7 @@ interface Client {
   name: string;
   initials: string;
   email?: string;
+  parent_email?: string;
   phone?: string;
   image?: string;
   location?: string;
@@ -155,7 +156,7 @@ export default function Dashboard() {
 
   const getPaymentStatus = (client: Client) => {
     const month = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-    return client.paymentStatus?.[month] || "Unpaid";
+    return client.paymentStatus?.[month] || "Not Funded";
   };
 
   const today = new Date();
@@ -246,7 +247,7 @@ export default function Dashboard() {
                 </Avatar>
                 <div className="client-details">
                   <h3 className="client-name">{client.name}</h3>
-                  {client.email && <p className="client-email">{client.email}</p>}
+                  {client.parent_email && <p className="client-email">{client.parent_email}</p>}
 
                   <span className={`payment-status ${getPaymentStatus(client).toLowerCase()}`}>
                     {getPaymentStatus(client) === "Funding" && (

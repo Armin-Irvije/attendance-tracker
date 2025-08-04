@@ -183,7 +183,7 @@
 
 .week-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 0.75rem;
 }
 
@@ -289,7 +289,7 @@
 }
 
 .calendar-day-name {
-  font-size: 0.75rem;
+  font-size: 1rem;
   color: hsl(215.4 16.3% 46.9%);
   font-weight: 500;
 }

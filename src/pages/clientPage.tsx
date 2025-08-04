@@ -15,6 +15,7 @@ interface Client {
   name: string;
   initials: string;
   email?: string;
+  parent_email?: string;
   phone?: string;
   image?: string;
   location?: string;
@@ -93,10 +94,10 @@ export default function ClientPage() {
     return new Date(d.setDate(diff));
   }
 
-  // Get week range string
+  // Get week range string (Monday through Friday)
   function getWeekRange(startDate: Date): string {
     const endDate = new Date(startDate);
-    endDate.setDate(startDate.getDate() + 6);
+    endDate.setDate(startDate.getDate() + 4); // Friday is 4 days after Monday
     
     const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
     const start = startDate.toLocaleDateString('en-US', options);
@@ -245,7 +246,7 @@ export default function ClientPage() {
 
   // Send email to parent
   const sendParentEmail = (client: Client, strikeCount: number) => {
-    if (!client.email) {
+    if (!client.parent_email) {
       toast.error('No parent email address found for this client.');
       return;
     }
@@ -264,7 +265,7 @@ Best regards,
 Attendance System`;
 
     // Open email client with pre-filled content
-    const mailtoLink = `mailto:${client.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    const mailtoLink = `mailto:${client.parent_email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     window.open(mailtoLink);
     
     toast.success('Email client opened. Please send the email manually.');
@@ -315,11 +316,11 @@ Attendance System`;
     checkStrikeWarnings(currentStrikes, client);
   }, [client, currentWeekStart]);
 
-  // Generate 7 days of the current week
+  // Generate 5 days of the current week (Monday through Friday)
   const generateWeekDays = (): CalendarDay[] => {
     const days: CalendarDay[] = [];
     
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < 5; i++) {
       const date = new Date(currentWeekStart);
       date.setDate(currentWeekStart.getDate() + i);
       
