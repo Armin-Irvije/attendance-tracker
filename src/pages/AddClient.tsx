@@ -7,25 +7,7 @@ import { toast } from 'sonner';
 import { UserIcon, MailIcon, PhoneIcon, UserPlusIcon, MapPinIcon } from 'lucide-react';
 import { Checkbox } from "@/components/ui/checkbox";
 import '../styles/add-client.css';
-
-interface Client {
-  id: string;
-  name: string;
-  initials: string;
-  email: string;
-  phone: string;
-  image?: string;
-  location?: string;
-  schedule: {
-    monday: boolean;
-    tuesday: boolean;
-    wednesday: boolean;
-    thursday: boolean;
-    friday: boolean;
-  };
-  parentName?: string;
-  createdAt?: string;
-}
+import { supabaseHelpers } from '../supabase-client.js';
 
 export default function AddClient() {
   const navigate = useNavigate();
@@ -83,7 +65,7 @@ export default function AddClient() {
       .substring(0, 2);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     // Validation
@@ -102,31 +84,25 @@ export default function AddClient() {
       return;
     }
 
-    // Create new client object
-    const newClient: Client = {
-      id: Date.now().toString(),
-      name: formData.name.trim(),
-      initials: initials,
-      email: formData.email.trim(),
-      phone: formData.phone.trim(),
-      location: formData.location.trim(),
-      schedule: schedule,
-      parentName: formData.parentName.trim(),
-      createdAt: new Date().toISOString(),
-    };
+    try {
+      // Create new client in Supabase
+      const newClient = await supabaseHelpers.createClient({
+        name: formData.name.trim(),
+        initials: initials,
+        parent_name: formData.parentName.trim(),
+        parent_email: formData.email.trim(),
+        phone: formData.phone.trim(),
+        location: formData.location.trim(),
+        schedule: schedule
+      });
 
-    // Get existing clients from localStorage
-    const existingClients = JSON.parse(localStorage.getItem('clients') || '[]');
-
-    // Add new client to the list
-    const updatedClients = [...existingClients, newClient];
-
-    // Save to localStorage
-    localStorage.setItem('clients', JSON.stringify(updatedClients));
-
-    // Show success message and navigate back to dashboard
-    toast.success(`${newClient.name} has been added as a client`);
-    navigate('/dashboard');
+      // Show success message and navigate back to dashboard
+      toast.success(`${newClient.name} has been added as a client`);
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('Error adding client:', error);
+      toast.error('Error adding client');
+    }
   };
 
   return (
@@ -240,12 +216,12 @@ export default function AddClient() {
             <section className="form-section">
               <h2 className="section-title">Weekly Schedule</h2>
               <div className="schedule-grid">
-                {Object.entries(schedule).map(([day, checked]) => (
+                {(['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as const).map((day) => (
                   <div key={day} className="schedule-item">
                     <Checkbox
                       id={day}
-                      checked={checked}
-                      onCheckedChange={() => handleScheduleChange(day as keyof typeof schedule)}
+                      checked={schedule[day]}
+                      onCheckedChange={() => handleScheduleChange(day)}
                       className="schedule-checkbox"
                     />
                     <Label htmlFor={day} className="schedule-label">

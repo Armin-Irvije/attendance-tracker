@@ -8,12 +8,14 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import '../styles/clientPage.css';
 import { toast } from 'sonner';
+import { supabaseHelpers } from '../supabase-client.js';
 
 interface Client {
   id: string;
   name: string;
   initials: string;
   email?: string;
+  parent_email?: string;
   phone?: string;
   image?: string;
   location?: string;
@@ -92,10 +94,10 @@ export default function ClientPage() {
     return new Date(d.setDate(diff));
   }
 
-  // Get week range string
+  // Get week range string (Monday through Friday)
   function getWeekRange(startDate: Date): string {
     const endDate = new Date(startDate);
-    endDate.setDate(startDate.getDate() + 6);
+    endDate.setDate(startDate.getDate() + 4); // Friday is 4 days after Monday
     
     const options: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
     const start = startDate.toLocaleDateString('en-US', options);
@@ -244,7 +246,7 @@ export default function ClientPage() {
 
   // Send email to parent
   const sendParentEmail = (client: Client, strikeCount: number) => {
-    if (!client.email) {
+    if (!client.parent_email) {
       toast.error('No parent email address found for this client.');
       return;
     }
@@ -263,26 +265,31 @@ Best regards,
 Attendance System`;
 
     // Open email client with pre-filled content
-    const mailtoLink = `mailto:${client.email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    const mailtoLink = `mailto:${client.parent_email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     window.open(mailtoLink);
     
     toast.success('Email client opened. Please send the email manually.');
   };
 
   useEffect(() => {
-    const loadClient = () => {
-      const savedClients = JSON.parse(localStorage.getItem('clients') || '[]');
-      const foundClient = savedClients.find((c: Client) => c.id === clientId);
-      
-      if (foundClient) {
-        setClient(foundClient);
-        if (foundClient.schedule) {
-          setSchedule(foundClient.schedule);
+    const loadClient = async () => {
+      try {
+        const foundClient = await supabaseHelpers.getClientWithAttendance(clientId!);
+        
+        if (foundClient) {
+          setClient(foundClient);
+          if (foundClient.schedule) {
+            setSchedule(foundClient.schedule);
+          }
+        } else {
+          navigate('/dashboard');
         }
-      } else {
+      } catch (error) {
+        console.error('Error loading client:', error);
         navigate('/dashboard');
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     loadClient();
@@ -309,11 +316,11 @@ Attendance System`;
     checkStrikeWarnings(currentStrikes, client);
   }, [client, currentWeekStart]);
 
-  // Generate 7 days of the current week
+  // Generate 5 days of the current week (Monday through Friday)
   const generateWeekDays = (): CalendarDay[] => {
     const days: CalendarDay[] = [];
     
-    for (let i = 0; i < 7; i++) {
+    for (let i = 0; i < 5; i++) {
       const date = new Date(currentWeekStart);
       date.setDate(currentWeekStart.getDate() + i);
       
@@ -340,66 +347,60 @@ Attendance System`;
   const weekDays = generateWeekDays();
 
   // Handle attendance click
-  const handleAttendanceClick = (day: CalendarDay) => {
+  const handleAttendanceClick = async (day: CalendarDay) => {
     if (!client) return;
 
-    const updatedClient = { ...client };
-    if (!updatedClient.attendance) {
-      updatedClient.attendance = {};
-    }
-
-    const currentRecord = updatedClient.attendance[day.dateStr];
+    const currentRecord = client.attendance?.[day.dateStr];
+    console.log('Current attendance record:', currentRecord);
+    
+    let status = 'unexcused';
+    let hours = 0;
+    let excused = false;
     
     if (!currentRecord) {
       // First click: 2 hours
-      updatedClient.attendance[day.dateStr] = {
-        attended: true,
-        hours: 2,
-        excused: false
-      };
+      status = 'present';
+      hours = 2;
     } else if (currentRecord.attended && currentRecord.hours === 2) {
       // Second click: 3 hours
-      updatedClient.attendance[day.dateStr] = {
-        attended: true,
-        hours: 3,
-        excused: false
-      };
+      status = 'present';
+      hours = 3;
     } else if (currentRecord.attended && currentRecord.hours === 3) {
       // Third click: Excused absent
-      updatedClient.attendance[day.dateStr] = {
-        attended: false,
-        hours: 0,
-        excused: true
-      };
-    } else if (!currentRecord.attended && currentRecord.excused) {
+      status = 'excused';
+      excused = true;
+    } else if (currentRecord.excused) {
       // Fourth click: Unexcused absent
-      updatedClient.attendance[day.dateStr] = {
-        attended: false,
-        hours: 0,
-        excused: false
-      };
+      status = 'unexcused';
     } else {
       // Fifth click (and beyond): Back to 2 hours
-      updatedClient.attendance[day.dateStr] = {
-        attended: true,
-        hours: 2,
-        excused: false
-      };
+      status = 'present';
+      hours = 2;
     }
 
-    // Save to localStorage
-    const savedClients = JSON.parse(localStorage.getItem('clients') || '[]');
-    const clientIndex = savedClients.findIndex((c: Client) => c.id === client.id);
-    if (clientIndex !== -1) {
-      savedClients[clientIndex] = updatedClient;
-      localStorage.setItem('clients', JSON.stringify(savedClients));
-    }
+    console.log('Updating attendance with:', { status, hours, excused });
 
-    setClient(updatedClient);
+    try {
+      await supabaseHelpers.updateAttendance(client.id, day.dateStr, {
+        status,
+        hours,
+        excused
+      });
+      
+      console.log('Attendance updated successfully');
+      
+      // Reload client data to get updated attendance
+      const updatedClient = await supabaseHelpers.getClientWithAttendance(client.id);
+      console.log('Updated client data:', updatedClient);
+      setClient(updatedClient);
+    } catch (error) {
+      console.error('Error updating attendance:', error);
+      toast.error('Error updating attendance');
+    }
   };
 
   // Handle schedule change
-  const handleScheduleChange = (day: keyof typeof schedule) => {
+  const handleScheduleChange = async (day: keyof typeof schedule) => {
     if (!client) return;
 
     const newSchedule = {
@@ -408,45 +409,37 @@ Attendance System`;
     };
     setSchedule(newSchedule);
 
-    const updatedClient = { ...client, schedule: newSchedule };
-
-    // Save to localStorage
-    const savedClients = JSON.parse(localStorage.getItem('clients') || '[]');
-    const clientIndex = savedClients.findIndex((c: Client) => c.id === client.id);
-    if (clientIndex !== -1) {
-      savedClients[clientIndex] = updatedClient;
-      localStorage.setItem('clients', JSON.stringify(savedClients));
+    try {
+      await supabaseHelpers.updateClient(client.id, {
+        schedule: newSchedule
+      });
+      // Reload client with attendance data
+      const updatedClient = await supabaseHelpers.getClientWithAttendance(client.id);
+      setClient(updatedClient);
+    } catch (error) {
+      console.error('Error updating schedule:', error);
+      toast.error('Error updating schedule');
+      // Revert the local state if the update failed
+      setSchedule(schedule);
     }
-
-    setClient(updatedClient);
   };
 
-  const handlePayment = () => {
+  const handlePayment = async () => {
     if (!client) return;
 
     const month = getMonthName(currentWeekStart);
-    const updatedClient = { ...client };
+    const currentStatus = client.paymentStatus?.[month];
+    const newStatus = currentStatus === "Funding" ? "Not Funded" : "Funding";
 
-    if (!updatedClient.paymentStatus) {
-      updatedClient.paymentStatus = {};
+    try {
+      await supabaseHelpers.updateClientPaymentStatus(client.id, month, newStatus);
+      // Reload client with attendance data
+      const updatedClient = await supabaseHelpers.getClientWithAttendance(client.id);
+      setClient(updatedClient);
+    } catch (error) {
+      console.error('Error updating payment status:', error);
+      toast.error('Error updating payment status');
     }
-
-    // Toggle Funding/Not Funded
-    if (updatedClient.paymentStatus[month] === "Funding") {
-      updatedClient.paymentStatus[month] = "Not Funded";
-    } else {
-      updatedClient.paymentStatus[month] = "Funding";
-    }
-
-    // Save to localStorage
-    const savedClients = JSON.parse(localStorage.getItem('clients') || '[]');
-    const clientIndex = savedClients.findIndex((c: Client) => c.id === client.id);
-    if (clientIndex !== -1) {
-      savedClients[clientIndex] = updatedClient;
-      localStorage.setItem('clients', JSON.stringify(savedClients));
-    }
-
-    setClient(updatedClient);
   };
 
   // Navigate weeks
@@ -460,40 +453,62 @@ Attendance System`;
     setCurrentWeekStart(getWeekStart(new Date()));
   };
 
-  const handleDeleteClient = () => {
+  const handleDeleteClient = async () => {
     if (!client) return;
     if (!window.confirm("Are you sure you want to delete this client? This action cannot be undone.")) return;
-    const savedClients = JSON.parse(localStorage.getItem('clients') || '[]');
-    const updatedClients = savedClients.filter((c: Client) => c.id !== client.id);
-    localStorage.setItem('clients', JSON.stringify(updatedClients));
-    navigate('/dashboard');
+    
+    try {
+      await supabaseHelpers.deleteClient(client.id);
+      navigate('/dashboard');
+    } catch (error) {
+      console.error('Error deleting client:', error);
+      toast.error('Error deleting client');
+    }
   };
 
   // New: handle attendance selection
-  const handleAttendanceSelect = (day: CalendarDay, option: '2h' | '3h' | 'excused' | 'unexcused') => {
+  const handleAttendanceSelect = async (day: CalendarDay, option: '2h' | '3h' | 'excused' | 'unexcused') => {
     if (!client) return;
-    const updatedClient = { ...client };
-    if (!updatedClient.attendance) {
-      updatedClient.attendance = {};
+    
+    console.log('Handling attendance selection:', option, 'for day:', day.dateStr);
+    
+    try {
+      let status = 'unexcused';
+      let hours = 0;
+      let excused = false;
+      
+      if (option === '2h') {
+        status = 'present';
+        hours = 2;
+      } else if (option === '3h') {
+        status = 'present';
+        hours = 3;
+      } else if (option === 'excused') {
+        status = 'excused';
+        excused = true;
+      } else if (option === 'unexcused') {
+        status = 'unexcused';
+      }
+      
+      console.log('Updating attendance with:', { status, hours, excused });
+      
+      await supabaseHelpers.updateAttendance(client.id, day.dateStr, {
+        status,
+        hours,
+        excused
+      });
+      
+      console.log('Attendance selection updated successfully');
+      
+      // Reload client data to get updated attendance
+      const updatedClient = await supabaseHelpers.getClientWithAttendance(client.id);
+      console.log('Updated client data after selection:', updatedClient);
+      setClient(updatedClient);
+      setSelectedDayIndex(null); // Dismiss selection UI
+    } catch (error) {
+      console.error('Error updating attendance:', error);
+      toast.error('Error updating attendance');
     }
-    if (option === '2h') {
-      updatedClient.attendance[day.dateStr] = { attended: true, hours: 2, excused: false };
-    } else if (option === '3h') {
-      updatedClient.attendance[day.dateStr] = { attended: true, hours: 3, excused: false };
-    } else if (option === 'excused') {
-      updatedClient.attendance[day.dateStr] = { attended: false, hours: 0, excused: true };
-    } else if (option === 'unexcused') {
-      updatedClient.attendance[day.dateStr] = { attended: false, hours: 0, excused: false };
-    }
-    // Save to localStorage
-    const savedClients = JSON.parse(localStorage.getItem('clients') || '[]');
-    const clientIndex = savedClients.findIndex((c: Client) => c.id === client.id);
-    if (clientIndex !== -1) {
-      savedClients[clientIndex] = updatedClient;
-      localStorage.setItem('clients', JSON.stringify(savedClients));
-    }
-    setClient(updatedClient);
-    setSelectedDayIndex(null); // Dismiss selection UI
   };
 
   if (isLoading) {
@@ -535,12 +550,12 @@ Attendance System`;
         </CardHeader>
         <CardContent>
           <div className="schedule-grid">
-            {Object.entries(schedule).map(([day, checked]) => (
-              <div key={day} className="schedule-item" onClick={() => handleScheduleChange(day as keyof typeof schedule)}>
+            {(['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as const).map((day) => (
+              <div key={day} className="schedule-item" onClick={() => handleScheduleChange(day)}>
                 <Checkbox
                   id={`schedule-${day}`}
-                  checked={checked}
-                  onCheckedChange={() => handleScheduleChange(day as keyof typeof schedule)}
+                  checked={schedule[day]}
+                  onCheckedChange={() => handleScheduleChange(day)}
                   className="schedule-checkbox"
                 />
                 <Label htmlFor={`schedule-${day}`} className="schedule-label">
@@ -826,11 +841,10 @@ Attendance System`;
           <CardContent className="instruction-content">
             <h3>How to track attendance:</h3>
             <ul>
-              <li>Click on a scheduled day to mark as attended (2 hours)</li>
-              <li>Click again to change to 3 hours</li>
-              <li>Click once more to mark as excused absent</li>
-              <li>Click once more to mark as unexcused absent</li>
-              <li>All days can be clicked</li>
+              <li><strong>Scheduled days:</strong> Click to open attendance options (2 hours, 3 hours, excused, unexcused)</li>
+              <li><strong>Unscheduled days:</strong> Click to toggle through attendance states (2h → 3h → unscheduled)</li>
+              <li>Green indicates attended, yellow indicates excused absence, red indicates unexcused absence</li>
+              <li>All days can be marked for attendance regardless of schedule</li>
             </ul>
           </CardContent>
         </Card>

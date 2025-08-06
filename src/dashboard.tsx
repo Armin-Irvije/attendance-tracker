@@ -9,12 +9,14 @@ import './styles/dashboard.css';
 import { useNavigate } from 'react-router-dom';
 import { toast } from "sonner";
 import DailyAttendance from "@/components/DailyAttendance";
+import { supabaseHelpers } from './supabase-client.js';
 
 interface Client {
   id: string;
   name: string;
   initials: string;
   email?: string;
+  parent_email?: string;
   phone?: string;
   image?: string;
   location?: string;
@@ -23,14 +25,13 @@ interface Client {
     [date: string]: {
       attended: boolean;
       hours: number;
+      excused?: boolean;
     };
   };
   paymentStatus?: {
     [month: string]: "Funding" | "Not Funded";
   };
 }
-
-
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -40,14 +41,31 @@ export default function Dashboard() {
   const [selectedLocation, setSelectedLocation] = useState<string>("All Locations");
   const [searchTerm, setSearchTerm] = useState<string>('');
 
-  // Load clients from localStorage
+  // Load clients from Supabase
   useEffect(() => {
-    const loadClients = () => {
-      const savedClients = JSON.parse(localStorage.getItem('clients') || '[]');
-      setClients(savedClients);
-      const uniqueLocations = ["All Locations", ...Array.from(new Set(savedClients.map((c: Client) => c.location).filter(Boolean))) as string[]];
-      setLocations(uniqueLocations);
-      setIsLoading(false);
+    const loadClients = async () => {
+      try {
+        const clients = await supabaseHelpers.getClients();
+        // Load attendance data for each client
+        const clientsWithAttendance = await Promise.all(
+          clients.map(async (client) => {
+            try {
+              return await supabaseHelpers.getClientWithAttendance(client.id);
+            } catch (error) {
+              console.error(`Error loading attendance for client ${client.id}:`, error);
+              return client;
+            }
+          })
+        );
+        setClients(clientsWithAttendance);
+        const uniqueLocations = ["All Locations", ...Array.from(new Set(clientsWithAttendance.map((c: Client) => c.location).filter(Boolean))) as string[]];
+        setLocations(uniqueLocations);
+      } catch (error) {
+        console.error('Error loading clients:', error);
+        toast.error('Error loading clients');
+      } finally {
+        setIsLoading(false);
+      }
     };
 
     loadClients();
@@ -59,19 +77,23 @@ export default function Dashboard() {
   };
 
   // Handle client deletion
-  const handleDeleteClient = (clientId: string, event: React.MouseEvent) => {
+  const handleDeleteClient = async (clientId: string, event: React.MouseEvent) => {
     event.stopPropagation(); // Prevent triggering the client selection
 
     // Confirm deletion
     if (window.confirm('Are you sure you want to delete this client?')) {
-      // Remove client from state
-      const updatedClients = clients.filter(client => client.id !== clientId);
-      setClients(updatedClients);
+      try {
+        await supabaseHelpers.deleteClient(clientId);
 
-      // Update localStorage
-      localStorage.setItem('clients', JSON.stringify(updatedClients));
+        // Remove client from state
+        const updatedClients = clients.filter(client => client.id !== clientId);
+        setClients(updatedClients);
 
-      toast.success('Client deleted successfully');
+        toast.success('Client deleted successfully');
+      } catch (error) {
+        console.error('Error deleting client:', error);
+        toast.error('Error deleting client');
+      }
     }
   };
 
@@ -80,8 +102,8 @@ export default function Dashboard() {
     navigate(`/client/${client.id}`);
   };
 
-  // Handle client check-in
-  const handleCheckIn = (client: Client, event: React.MouseEvent) => {
+  // Handle client check-in with Supabase
+  const handleCheckIn = async (client: Client, event: React.MouseEvent) => {
     event.stopPropagation(); // Prevent card click from navigating
 
     const today = new Date();
@@ -89,26 +111,43 @@ export default function Dashboard() {
     const dateStr = today.toISOString().split('T')[0];
 
     if (client.schedule[dayName as keyof typeof client.schedule]) {
-      const updatedClient = { ...client };
-      if (!updatedClient.attendance) {
-        updatedClient.attendance = {};
-      }
+      try {
+        const currentRecord = client.attendance?.[dateStr];
+        const alreadyCheckedIn = currentRecord?.attended;
+        
+        if (!alreadyCheckedIn) {
+          // Check in: 2 hours
+          await supabaseHelpers.updateAttendance(client.id, dateStr, {
+            status: 'present',
+            hours: 2,
+            excused: false
+          });
+          toast.success(`${client.name} has been checked in for today.`);
+        } else {
+          // Undo check-in - remove the attendance record entirely
+          await supabaseHelpers.updateAttendance(client.id, dateStr, {
+            status: 'unexcused',
+            hours: 0,
+            excused: false
+          });
+          toast.info(`${client.name}'s check-in for today has been undone.`);
+        }
 
-      const alreadyCheckedIn = updatedClient.attendance[dateStr]?.attended;
-      if (!alreadyCheckedIn) {
-        updatedClient.attendance[dateStr] = { attended: true, hours: 2 };
-        toast.success(`${client.name} has been checked in for today.`);
-      } else {
-        updatedClient.attendance[dateStr] = { attended: false, hours: 0 };
-        toast.info(`${client.name}'s check-in for today has been undone.`);
-      }
-
-      const savedClients = JSON.parse(localStorage.getItem('clients') || '[]');
-      const clientIndex = savedClients.findIndex((c: Client) => c.id === client.id);
-      if (clientIndex !== -1) {
-        savedClients[clientIndex] = updatedClient;
-        localStorage.setItem('clients', JSON.stringify(savedClients));
-        setClients(savedClients);
+        // Reload all clients to get updated data
+        const updatedClients = await Promise.all(
+          clients.map(async (c) => {
+            try {
+              return await supabaseHelpers.getClientWithAttendance(c.id);
+            } catch (error) {
+              console.error(`Error reloading client ${c.id}:`, error);
+              return c;
+            }
+          })
+        );
+        setClients(updatedClients);
+      } catch (error) {
+        console.error('Error updating attendance:', error);
+        toast.error('Error updating attendance');
       }
     } else {
       toast.info(`${client.name} is not scheduled for today.`);
@@ -117,7 +156,7 @@ export default function Dashboard() {
 
   const getPaymentStatus = (client: Client) => {
     const month = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-    return client.paymentStatus?.[month] || "Unpaid";
+    return client.paymentStatus?.[month] || "Not Funded";
   };
 
   const today = new Date();
@@ -208,10 +247,10 @@ export default function Dashboard() {
                 </Avatar>
                 <div className="client-details">
                   <h3 className="client-name">{client.name}</h3>
-                  {client.email && <p className="client-email">{client.email}</p>}
+                  {client.parent_email && <p className="client-email">{client.parent_email}</p>}
 
                   <span className={`payment-status ${getPaymentStatus(client).toLowerCase()}`}>
-                      {getPaymentStatus(client) === "Funding" && (      
+                    {getPaymentStatus(client) === "Funding" && (
                       <span className="paid-icon-wrapper" title="Funding">
                         <DollarSignIcon className="paid-icon" />
                       </span>
@@ -228,11 +267,10 @@ export default function Dashboard() {
                 <Trash2Icon className="trash-icon" />
               </button>
               <button
-                className={`check-in-button${
-                  !client.schedule[todayDayName]
+                className={`check-in-button${!client.schedule[todayDayName]
                     ? ' check-in-faded' : client.attendance && client.attendance[todayDateStr]?.attended
-                    ? ' checked-in' : ''
-                }`}
+                      ? ' checked-in' : ''
+                  }`}
                 onClick={(e) => handleCheckIn(client, e)}
                 title={client.attendance && client.attendance[todayDateStr]?.attended ? "Undo check-in" : "Check in client"}
                 disabled={!client.schedule[todayDayName]}
