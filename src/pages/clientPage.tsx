@@ -550,12 +550,12 @@ Attendance System`;
         </CardHeader>
         <CardContent>
           <div className="schedule-grid">
-            {Object.entries(schedule).map(([day, checked]) => (
-              <div key={day} className="schedule-item" onClick={() => handleScheduleChange(day as keyof typeof schedule)}>
+            {(['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as const).map((day) => (
+              <div key={day} className="schedule-item" onClick={() => handleScheduleChange(day)}>
                 <Checkbox
                   id={`schedule-${day}`}
-                  checked={checked}
-                  onCheckedChange={() => handleScheduleChange(day as keyof typeof schedule)}
+                  checked={schedule[day]}
+                  onCheckedChange={() => handleScheduleChange(day)}
                   className="schedule-checkbox"
                 />
                 <Label htmlFor={`schedule-${day}`} className="schedule-label">
@@ -841,11 +841,10 @@ Attendance System`;
           <CardContent className="instruction-content">
             <h3>How to track attendance:</h3>
             <ul>
-              <li>Click on a scheduled day to mark as attended (2 hours)</li>
-              <li>Click again to change to 3 hours</li>
-              <li>Click once more to mark as excused absent</li>
-              <li>Click once more to mark as unexcused absent</li>
-              <li>All days can be clicked</li>
+              <li><strong>Scheduled days:</strong> Click to open attendance options (2 hours, 3 hours, excused, unexcused)</li>
+              <li><strong>Unscheduled days:</strong> Click to toggle through attendance states (2h → 3h → unscheduled)</li>
+              <li>Green indicates attended, yellow indicates excused absence, red indicates unexcused absence</li>
+              <li>All days can be marked for attendance regardless of schedule</li>
             </ul>
           </CardContent>
         </Card>

@@ -216,12 +216,12 @@ export default function AddClient() {
             <section className="form-section">
               <h2 className="section-title">Weekly Schedule</h2>
               <div className="schedule-grid">
-                {Object.entries(schedule).map(([day, checked]) => (
+                {(['monday', 'tuesday', 'wednesday', 'thursday', 'friday'] as const).map((day) => (
                   <div key={day} className="schedule-item">
                     <Checkbox
                       id={day}
-                      checked={checked}
-                      onCheckedChange={() => handleScheduleChange(day as keyof typeof schedule)}
+                      checked={schedule[day]}
+                      onCheckedChange={() => handleScheduleChange(day)}
                       className="schedule-checkbox"
                     />
                     <Label htmlFor={day} className="schedule-label">
