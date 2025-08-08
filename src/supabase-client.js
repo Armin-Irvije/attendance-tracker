@@ -8,6 +8,157 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// Authentication helper functions
+export const authHelpers = {
+  // Sign in with email and password
+  async signIn(email, password) {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+    
+    if (error) throw error;
+    return data;
+  },
+
+  // Sign up with email and password
+  async signUp(email, password, userData = {}) {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: userData
+      }
+    });
+    
+    if (error) throw error;
+    
+    // If signup was successful and we have user data, insert into users table
+    if (data.user && userData.name && userData.role) {
+      try {
+        const { error: insertError } = await supabase
+          .from('users')
+          .insert([{
+            id: data.user.id,
+            email: email,
+            name: userData.name,
+            role: userData.role
+          }]);
+        
+        if (insertError) {
+          console.error('Error inserting user into users table:', insertError);
+          // Don't throw here as the auth user was created successfully
+        }
+      } catch (err) {
+        console.error('Error in signup process:', err);
+        // Don't throw here as the auth user was created successfully
+      }
+    }
+    
+    return data;
+  },
+
+  // Sign out
+  async signOut() {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+  },
+
+  // Get current user
+  async getCurrentUser() {
+    const { data: { user }, error } = await supabase.auth.getUser();
+    if (error) throw error;
+    return user;
+  },
+
+  // Get user role from users table
+  async getUserRole(userId) {
+    const { data, error } = await supabase
+      .from('users')
+      .select('role, name')
+      .eq('id', userId)
+      .maybeSingle();
+    
+    if (error) {
+      console.error('Error getting user role:', error);
+      // Return default values if user not found in users table
+      return { role: 'employee', name: 'Unknown User' };
+    }
+    
+    // If no user found, return default values
+    if (!data) {
+      console.warn('User not found in users table, using default role');
+      return { role: 'employee', name: 'Unknown User' };
+    }
+    
+    return data;
+  },
+
+  // Check if user is authenticated and get their role
+  async getAuthUserWithRole() {
+    const user = await this.getCurrentUser();
+    if (!user) return null;
+    
+    const userData = await this.getUserRole(user.id);
+    return {
+      ...user,
+      role: userData.role,
+      name: userData.name
+    };
+  },
+
+  // Helper function to create admin user manually
+  async createAdminUser(email, password, name) {
+    try {
+      // First create the auth user
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { name, role: 'admin' }
+        }
+      });
+      
+      if (error) throw error;
+      
+      // Then insert into users table
+      if (data.user) {
+        const { error: insertError } = await supabase
+          .from('users')
+          .insert([{
+            id: data.user.id,
+            email: email,
+            name: name,
+            role: 'admin'
+          }]);
+        
+        if (insertError) {
+          console.error('Error inserting admin user:', insertError);
+        }
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Error creating admin user:', error);
+      throw error;
+    }
+  },
+
+  // Helper function to check existing users
+  async getUsersList() {
+    const { data, error } = await supabase
+      .from('users')
+      .select('*');
+    
+    if (error) {
+      console.error('Error getting users list:', error);
+      return [];
+    }
+    
+    return data || [];
+  }
+};
+
 // Helper functions for common operations
 export const supabaseHelpers = {
   // Get all clients

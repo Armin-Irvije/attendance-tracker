@@ -3,13 +3,13 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Toaster } from "sonner";
-import { PlusIcon, CheckIcon, Trash2Icon, DollarSignIcon, XIcon } from "lucide-react";
+import { PlusIcon, CheckIcon, Trash2Icon, DollarSignIcon, XIcon, LogOut } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import './styles/dashboard.css';
 import { useNavigate } from 'react-router-dom';
 import { toast } from "sonner";
 import DailyAttendance from "@/components/DailyAttendance";
-import { supabaseHelpers } from './supabase-client.js';
+import { supabaseHelpers, authHelpers } from './supabase-client.js';
 
 interface Client {
   id: string;
@@ -100,6 +100,25 @@ export default function Dashboard() {
   // Handle client selection (navigation only)
   const handleClientClick = (client: Client) => {
     navigate(`/client/${client.id}`);
+  };
+
+  // Handle logout
+  const handleLogout = async () => {
+    try {
+      await authHelpers.signOut();
+      // Clear local storage
+      localStorage.removeItem('isAuthenticated');
+      localStorage.removeItem('userRole');
+      localStorage.removeItem('userName');
+      sessionStorage.removeItem('isAuthenticated');
+      sessionStorage.removeItem('userRole');
+      sessionStorage.removeItem('userName');
+      // Redirect to login
+      window.location.href = '/login';
+    } catch (error) {
+      console.error('Error logging out:', error);
+      toast.error('Error logging out');
+    }
   };
 
   // Handle client check-in with Supabase
@@ -204,8 +223,20 @@ export default function Dashboard() {
       <Toaster />
 
       <header className="dashboard-header">
-        <h1 className="dashboard-title">Client Management Dashboard</h1>
-        <p className="dashboard-subtitle">Manage your clients and view their attendance</p>
+        <div className="header-content">
+          <div>
+            <h1 className="dashboard-title">Client Management Dashboard</h1>
+            <p className="dashboard-subtitle">Manage your clients and view their attendance</p>
+          </div>
+          <button
+            onClick={handleLogout}
+            className="logout-button"
+            title="Logout"
+          >
+            <LogOut className="h-4 w-4" />
+            Logout
+          </button>
+        </div>
       </header>
 
       <div className="dashboard-top-row">

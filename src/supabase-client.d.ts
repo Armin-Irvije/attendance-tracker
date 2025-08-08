@@ -1,6 +1,15 @@
 declare module './supabase-client.js' {
   export const supabase: any;
   
+  export const authHelpers: {
+    signIn(email: string, password: string): Promise<any>;
+    signUp(email: string, password: string, userData?: any): Promise<any>;
+    signOut(): Promise<void>;
+    getCurrentUser(): Promise<any>;
+    getUserRole(userId: string): Promise<any>;
+    getAuthUserWithRole(): Promise<any>;
+  };
+  
   export const supabaseHelpers: {
     getClients(): Promise<any[]>;
     getClient(id: string): Promise<any>;
