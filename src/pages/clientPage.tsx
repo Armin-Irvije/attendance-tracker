@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import '../styles/clientPage.css';
 import { toast } from 'sonner';
 import { supabaseHelpers } from '../supabase-client.js';
+import { getCurrentDateString } from '../lib/utils';
 
 interface Client {
   id: string;
@@ -49,6 +50,7 @@ interface AttendanceSummary {
   daysAttended: number;
   attendancePercentage: number;
   totalHours: number;
+  totalDaysScheduledInMonth: number;
 }
 
 interface CalendarDay {
@@ -72,7 +74,8 @@ export default function ClientPage() {
     daysScheduled: 0,
     daysAttended: 0,
     attendancePercentage: 0,
-    totalHours: 0
+    totalHours: 0,
+    totalDaysScheduledInMonth: 0
   });
   const [isLoading, setIsLoading] = useState(true);
   const [schedule, setSchedule] = useState({
@@ -115,14 +118,21 @@ export default function ClientPage() {
   function calculateMonthlyStats(client: Client, currentWeek: Date): AttendanceSummary {
     const monthStart = new Date(currentWeek.getFullYear(), currentWeek.getMonth(), 1);
     const monthEnd = new Date(currentWeek.getFullYear(), currentWeek.getMonth() + 1, 0);
+    const today = new Date();
+    today.setHours(23, 59, 59, 999); // End of today to include today in calculations
+    
+    // Use local timezone for date comparisons
+    const todayDateStr = getCurrentDateString();
+    const todayDate = new Date(todayDateStr + 'T23:59:59');
     
     // Get client creation date, default to month start if not set
     const clientCreatedAt = client.createdAt ? new Date(client.createdAt) : monthStart;
     const effectiveStartDate = clientCreatedAt > monthStart ? clientCreatedAt : monthStart;
     
-    let daysScheduled = 0;
+    let daysScheduledCurrentPast = 0; // Days scheduled that are current or past
     let daysAttended = 0;
     let totalHours = 0;
+    let totalDaysScheduledInMonth = 0; // Total scheduled days in the entire month
     
     const clientSchedule = client.schedule || {};
 
@@ -132,9 +142,16 @@ export default function ClientPage() {
       const dateStr = date.toISOString().split('T')[0];
       const attendanceRecord = client.attendance?.[dateStr];
       
+      // Count total scheduled days in the month (for display below)
       if (clientSchedule[dayName as keyof typeof clientSchedule]) {
-        daysScheduled++;
+        totalDaysScheduledInMonth++;
       }
+      
+      // Only count scheduled days that are current or past for attendance calculation
+      if (clientSchedule[dayName as keyof typeof clientSchedule] && date <= todayDate) {
+        daysScheduledCurrentPast++;
+      }
+      
       // Count as attended if attended, regardless of schedule
       if (attendanceRecord?.attended) {
         daysAttended++;
@@ -145,10 +162,11 @@ export default function ClientPage() {
     return {
       weekRange: getWeekRange(currentWeek),
       monthName: getMonthName(currentWeek),
-      daysScheduled,
+      daysScheduled: daysScheduledCurrentPast, // Show current/past scheduled days for the X/Y display
       daysAttended,
-      attendancePercentage: daysScheduled ? Math.round((daysAttended / daysScheduled) * 100) : 0,
-      totalHours
+      attendancePercentage: daysScheduledCurrentPast ? Math.round((daysAttended / daysScheduledCurrentPast) * 100) : 0, // Use current/past days for percentage
+      totalHours,
+      totalDaysScheduledInMonth // Add this for the display below
     };
   }
 
@@ -324,7 +342,10 @@ Attendance System`;
       const date = new Date(currentWeekStart);
       date.setDate(currentWeekStart.getDate() + i);
       
-      const dateStr = date.toISOString().split('T')[0];
+      // Use local timezone for date string
+      const dateStr = date.getFullYear() + '-' + 
+                     String(date.getMonth() + 1).padStart(2, '0') + '-' + 
+                     String(date.getDate()).padStart(2, '0');
       const attendanceRecord = client?.attendance?.[dateStr];
       const dayName = date.toLocaleDateString("en-US", { weekday: "long" }).toLowerCase();
       
@@ -579,7 +600,7 @@ Attendance System`;
             </CardTitle>
           </CardHeader>
           <CardContent className="stat-card-content">
-            <p className="stat-time-period">{summary.monthName}</p>
+            <p className="stat-time-period">Current/past days in {summary.monthName}</p>
           </CardContent>
         </Card>
 
@@ -594,7 +615,7 @@ Attendance System`;
             </CardTitle>
           </CardHeader>
           <CardContent className="stat-card-content">
-            <p className="stat-time-period">Scheduled days in {summary.monthName}</p>
+            <p className="stat-time-period">Total scheduled: {summary.totalDaysScheduledInMonth} days</p>
           </CardContent>
         </Card>
 

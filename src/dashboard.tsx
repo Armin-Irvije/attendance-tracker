@@ -10,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from "sonner";
 import DailyAttendance from "@/components/DailyAttendance";
 import { supabaseHelpers, authHelpers } from './supabase-client.js';
+import { getCurrentDateString } from './lib/utils';
 
 interface Client {
   id: string;
@@ -127,7 +128,7 @@ export default function Dashboard() {
 
     const today = new Date();
     const dayName = today.toLocaleDateString("en-US", { weekday: "long" }).toLowerCase();
-    const dateStr = today.toISOString().split('T')[0];
+    const dateStr = getCurrentDateString();
 
     if (client.schedule[dayName as keyof typeof client.schedule]) {
       try {
@@ -180,7 +181,7 @@ export default function Dashboard() {
 
   const today = new Date();
   const todayDayName = today.toLocaleDateString("en-US", { weekday: "long" }).toLowerCase();
-  const todayDateStr = today.toISOString().split('T')[0];
+  const todayDateStr = getCurrentDateString();
 
   const sortedAndFilteredClients = clients
     .filter(client => selectedLocation === "All Locations" || client.location === selectedLocation)

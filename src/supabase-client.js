@@ -8,6 +8,15 @@ const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
+// Utility function to get current date in local timezone (YYYY-MM-DD format)
+export const getCurrentDateString = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 // Authentication helper functions
 export const authHelpers = {
   // Sign in with email and password
@@ -164,7 +173,7 @@ export const supabaseHelpers = {
   // Get all clients
   async getClients() {
     const { data, error } = await supabase
-      .from('clients')
+      .from('clients_pacific_time')
       .select('*')
       .order('created_at', { ascending: false });
     
@@ -175,7 +184,7 @@ export const supabaseHelpers = {
   // Get client by ID
   async getClient(id) {
     const { data, error } = await supabase
-      .from('clients')
+      .from('clients_pacific_time')
       .select('*')
       .eq('id', id)
       .single();
@@ -186,9 +195,15 @@ export const supabaseHelpers = {
 
   // Create new client
   async createClient(clientData) {
+    // Add Pacific timezone timestamp for created_at if not provided
+    const clientDataWithTimestamp = {
+      ...clientData,
+      created_at: clientData.created_at || new Date().toISOString()
+    };
+    
     const { data, error } = await supabase
       .from('clients')
-      .insert([clientData])
+      .insert([clientDataWithTimestamp])
       .select()
       .single();
     
@@ -222,7 +237,7 @@ export const supabaseHelpers = {
   // Get attendance for a client
   async getClientAttendance(clientId) {
     const { data, error } = await supabase
-      .from('attendance')
+      .from('attendance_pacific_time')
       .select('*')
       .eq('client_id', clientId)
       .order('date', { ascending: true });
@@ -391,5 +406,86 @@ export const supabaseHelpers = {
     }
     
     console.log('Attendance cleared for:', { clientId, date });
+  },
+
+  // Debug function to check attendance data for a client
+  async debugClientAttendance(clientId) {
+    const { data, error } = await supabase
+      .from('attendance_pacific_time')
+      .select('*')
+      .eq('client_id', clientId)
+      .order('date', { ascending: false })
+      .limit(10);
+    
+    if (error) {
+      console.error('Error getting attendance data:', error);
+      throw error;
+    }
+    
+    console.log('Recent attendance records for client:', clientId);
+    console.log('Records:', data);
+    
+    // Also show the current date
+    const now = new Date();
+    console.log('Current date (local):', now.toLocaleDateString());
+    console.log('Current date (UTC):', now.toISOString().split('T')[0]);
+    console.log('Current date (Pacific):', now.toLocaleString("en-US", {timeZone: "America/Los_Angeles"}));
+    
+    return data;
+  },
+
+  // Debug function to check timezone settings
+  async debugTimezoneSettings() {
+    console.log('=== Timezone Debug Information ===');
+    
+    // Check current browser timezone
+    const now = new Date();
+    console.log('Browser local time:', now.toString());
+    console.log('Browser timezone offset:', now.getTimezoneOffset(), 'minutes');
+    console.log('Browser timezone:', Intl.DateTimeFormat().resolvedOptions().timeZone);
+    
+    // Check Pacific timezone
+    console.log('Pacific timezone time:', now.toLocaleString("en-US", {timeZone: "America/Los_Angeles"}));
+    
+    // Check UTC time
+    console.log('UTC time:', now.toISOString());
+    
+    // Test database timezone by creating a test record
+    try {
+      const testData = {
+        name: 'Timezone Test Client',
+        initials: 'TT',
+        schedule: { monday: true, tuesday: false, wednesday: false, thursday: false, friday: false }
+      };
+      
+      const { data, error } = await supabase
+        .from('clients')
+        .insert([testData])
+        .select('created_at, updated_at')
+        .single();
+      
+      if (error) {
+        console.error('Error creating test record:', error);
+      } else {
+        console.log('Database created_at (UTC):', data.created_at);
+        console.log('Database updated_at (UTC):', data.updated_at);
+        
+        // Convert to Pacific timezone
+        const pacificCreated = new Date(data.created_at).toLocaleString("en-US", {timeZone: "America/Los_Angeles"});
+        const pacificUpdated = new Date(data.updated_at).toLocaleString("en-US", {timeZone: "America/Los_Angeles"});
+        console.log('Database created_at (Pacific):', pacificCreated);
+        console.log('Database updated_at (Pacific):', pacificUpdated);
+        
+        // Clean up test record
+        await supabase
+          .from('clients')
+          .delete()
+          .eq('name', 'Timezone Test Client');
+      }
+    } catch (err) {
+      console.error('Error in timezone test:', err);
+    }
+    
+    console.log('=== End Timezone Debug ===');
   }
 }; 
