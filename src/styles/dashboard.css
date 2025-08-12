@@ -13,6 +13,9 @@
 .dashboard-header {
   text-align: center;
   margin-bottom: 2rem;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 .header-content {
@@ -21,6 +24,8 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 1rem;
+  width: 100%;
+  max-width: 800px;
 }
 
 .logout-button {
@@ -52,6 +57,8 @@
   font-weight: 700;
   color: #111; /* Tailwind slate-900 */
   margin-bottom: 0.5rem;
+  text-align: center;
+  width: 100%;
 }
 
 .dashboard-subtitle {
@@ -715,6 +722,20 @@ button:hover,
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
+  .dashboard-header {
+    padding: 0 1rem;
+  }
+  
+  .header-content {
+    flex-direction: column;
+    gap: 1.5rem;
+    text-align: center;
+  }
+  
+  .dashboard-title {
+    font-size: 1.75rem;
+  }
+  
   .clients-grid {
     grid-template-columns: 1fr;
     gap: 1rem;

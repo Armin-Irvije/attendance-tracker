@@ -1,9 +1,9 @@
+
 .add-client-page {
   min-height: 100vh;
   background-color: hsl(210 40% 98%);
   padding: 2rem 1rem;
 }
-
 .add-client-container {
   max-width: 800px;
   margin: 0 auto;
@@ -13,39 +13,33 @@
   padding: 2rem;
   border: 1px solid hsl(214.3 31.8% 91.4%);
 }
-
 .page-header {
   text-align: center;
   margin-bottom: 2rem;
   padding-bottom: 1.5rem;
   border-bottom: 1px solid hsl(214.3 31.8% 91.4%);
 }
-
 .page-title {
   font-size: 2rem;
   font-weight: 700;
   color: hsl(222.2 47.4% 11.2%);
   margin-bottom: 0.5rem;
 }
-
 .page-description {
   color: hsl(215.4 16.3% 46.9%);
   font-size: 1rem;
   line-height: 1.5;
 }
-
 .add-client-form {
   display: flex;
   flex-direction: column;
   gap: 2rem;
 }
 
-
 .form-sections {
   display: grid;
   gap: 2rem;
 }
-
 .form-section {
   background-color: hsl(0 0% 100%);
   border-radius: 8px;
@@ -54,11 +48,9 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   transition: box-shadow 0.2s ease;
 }
-
 .form-section:hover {
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
-
 .section-title {
   font-size: 1.25rem;
   font-weight: 600;
@@ -70,15 +62,12 @@
   padding-bottom: 0.5rem;
   border-bottom: 1px solid hsl(214.3 31.8% 91.4%);
 }
-
 .form-field {
   margin-bottom: 1.5rem;
 }
-
 .form-field:last-child {
   margin-bottom: 0;
 }
-
 .form-field-label {
   display: block;
   margin-bottom: 0.5rem;
@@ -86,12 +75,10 @@
   color: hsl(222.2 47.4% 11.2%);
   font-size: 0.875rem;
 }
-
 .form-field-required {
   color: hsl(0 84.2% 60.2%);
   margin-left: 2px;
 }
-
 .form-field-icon {
   position: absolute;
   left: 12px;
@@ -101,7 +88,6 @@
   pointer-events: none;
   z-index: 2;
 }
-
 .form-field-input {
   padding-left: 40px;
   height: 44px;
@@ -113,23 +99,19 @@
   color: hsl(222.2 47.4% 11.2%);
   width: 100%;
 }
-
 .form-field-input:focus {
   outline: none;
   border-color: hsl(221.2 83.2% 53.3%);
   box-shadow: 0 0 0 3px hsl(221.2 83.2% 53.3% / 0.1);
 }
-
 .form-field-input::placeholder {
   color: hsl(215.4 16.3% 46.9%);
 }
-
 .schedule-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 0.75rem;
 }
-
 .schedule-item {
   display: flex;
   align-items: center;
@@ -141,29 +123,24 @@
   transition: all 0.2s ease;
   cursor: pointer;
 }
-
 .schedule-item:hover {
   background-color: hsl(210 40% 96%);
   border-color: hsl(221.2 83.2% 53.3%);
   transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
-
 .schedule-item:has(.schedule-checkbox[data-state="checked"]) {
   background-color: hsl(221.2 83.2% 53.3% / 0.1);
   border-color: hsl(221.2 83.2% 53.3%);
 }
-
 .schedule-checkbox {
   border: 2px solid hsl(214.3 31.8% 91.4%);
   background-color: hsl(0 0% 100%);
 }
-
 .schedule-checkbox[data-state="checked"] {
   background-color: hsl(221.2 83.2% 53.3%);
   border-color: hsl(221.2 83.2% 53.3%);
 }
-
 .schedule-label {
   font-size: 0.875rem;
   font-weight: 500;
@@ -171,7 +148,6 @@
   cursor: pointer;
   user-select: none;
 }
-
 .selected-days {
   margin-top: 1rem;
   padding: 0.75rem;
@@ -179,69 +155,61 @@
   border-radius: 6px;
   border: 1px solid hsl(142.1 76.2% 36.3% / 0.3);
 }
-
 .selected-days-text {
   color: hsl(142.1 70% 25%);
   font-size: 0.875rem;
   font-weight: 500;
   margin: 0;
 }
-
 .form-actions {
-  display: flex;
-  justify-content: flex-end;
+  display: flex;    
+  align-items: center;
   gap: 1rem;
-  margin-top: 2rem;
-  padding-top: 2rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
   border-top: 1px solid hsl(214.3 31.8% 91.4%);
 }
-
 .cancel-button {
   background-color: hsl(0 0% 100%);
   color: hsl(222.2 47.4% 11.2%);
   border: 1px solid hsl(214.3 31.8% 91.4%);
   min-width: 120px;
-  height: 44px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.cancel-button:hover {
-  border-color: hsl(215.4 16.3% 46.9%);
-}
-
-.submit-button {
-  background-color: hsl(221.2 83.2% 53.3%);
-  color: hsl(0 0% 100%);
-  border: 1px solid hsl(221.2 83.2% 53.3%);
-  min-width: 120px;
-  height: 44px;
-  font-weight: 500;
+  height: 40px;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
 }
-
+.cancel-button:hover {
+  border-color: hsl(215.4 16.3% 46.9%);
+}
+.submit-button {
+  background-color: hsl(221.2 83.2% 53.3%);
+  color: hsl(0 0% 100%);
+  border: 1px solid hsl(221.2 83.2% 53.3%);
+  max-width: 120px;
+  height: 40px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  gap: 0.5rem;
+  margin-bottom: 0.22rem;
+}
 .submit-button:hover {
   background-color: hsl(221.2 83.2% 48%);
   border-color: hsl(221.2 83.2% 48%);
   transform: translateY(-1px);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
-
 .submit-button-icon {
   color: hsl(0 0% 100%);
   width: 1rem;
   height: 1rem;
 }
-
 .submit-button-text {
   color: hsl(0 0% 100%);
   margin: 0;
 }
-
 
 
 
@@ -287,7 +255,6 @@
     justify-content: center;
   }
 }
-
 @media (max-width: 480px) {
   .schedule-grid {
     grid-template-columns: 1fr;

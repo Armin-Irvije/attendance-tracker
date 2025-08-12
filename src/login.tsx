@@ -1,12 +1,12 @@
 // src/pages/Login.tsx
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Clock } from "lucide-react";
 import { authHelpers } from './supabase-client';
 import './styles/Login.css';
 
@@ -15,13 +15,15 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [role, setRole] = useState('employee');
-  const [rememberMe, setRememberMe] = useState(false);
+  const [rememberMe, setRememberMe] = useState(() => {
+    // Check if remember me was previously set
+    return localStorage.getItem('rememberMe') === 'true';
+  });
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSignup, setIsSignup] = useState(false);
-  
-  const navigate = useNavigate();
+
 
   // Force page reload to update authentication state
   const handleSuccessfulLogin = () => {
@@ -47,15 +49,21 @@ export default function Login() {
         // Get user role from the users table
         const userData = await authHelpers.getUserRole(user.id);
         
-        // Store auth state
+        // Store auth state based on remember me preference
         if (rememberMe) {
           localStorage.setItem('isAuthenticated', 'true');
           localStorage.setItem('userRole', userData.role);
           localStorage.setItem('userName', userData.name || '');
+          localStorage.setItem('userId', user.id);
+          // Set expiration for 30 days
+          const expirationDate = new Date();
+          expirationDate.setDate(expirationDate.getDate() + 30);
+          localStorage.setItem('authExpiration', expirationDate.toISOString());
         } else {
           sessionStorage.setItem('isAuthenticated', 'true');
           sessionStorage.setItem('userRole', userData.role);
           sessionStorage.setItem('userName', userData.name || '');
+          sessionStorage.setItem('userId', user.id);
         }
         
         // Redirect to dashboard
@@ -200,12 +208,32 @@ export default function Login() {
             
             {!isSignup && (
               <div className="remember-me-container">
-                <Checkbox 
-                  id="remember" 
-                  checked={rememberMe}
-                  onCheckedChange={(checked) => setRememberMe(checked === true)}
-                />
-                <Label htmlFor="remember" className="remember-me-label">Remember me</Label>
+                <button
+                  type="button"
+                  className={`toggle-switch ${rememberMe ? 'active' : ''}`}
+                  onClick={() => {
+                    const newValue = !rememberMe;
+                    setRememberMe(newValue);
+                    // Persist the remember me preference
+                    if (newValue) {
+                      localStorage.setItem('rememberMe', 'true');
+                    } else {
+                      localStorage.removeItem('rememberMe');
+                    }
+                  }}
+                  aria-label="Remember me"
+                >
+                  <div className="toggle-slider"></div>
+                </button>
+                <div className="remember-me-content">
+                  <Label className="remember-me-label">
+                    Remember me for 30 days
+                  </Label>
+                  <div className="remember-me-info">
+                    <Clock className="remember-me-icon" />
+                    <span>Stay signed in on this device</span>
+                  </div>
+                </div>
               </div>
             )}
             
