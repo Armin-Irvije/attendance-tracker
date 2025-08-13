@@ -142,7 +142,7 @@ export default function ClientPage() {
       const dateStr = date.toISOString().split('T')[0];
       const attendanceRecord = client.attendance?.[dateStr];
       
-      // Count total scheduled days in the month (for display below)
+      // Count total scheduled days in the month from when client was created (for display below)
       if (clientSchedule[dayName as keyof typeof clientSchedule]) {
         totalDaysScheduledInMonth++;
       }

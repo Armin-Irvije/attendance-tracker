@@ -32,6 +32,7 @@ interface Client {
   paymentStatus?: {
     [month: string]: "Funding" | "Not Funded";
   };
+  createdAt?: string; // ISO date string when client was created
 }
 
 export default function Dashboard() {

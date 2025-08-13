@@ -178,7 +178,12 @@ export const supabaseHelpers = {
       .order('created_at', { ascending: false });
     
     if (error) throw error;
-    return data;
+    
+    // Map snake_case fields to camelCase for consistency
+    return data.map(client => ({
+      ...client,
+      createdAt: client.created_at
+    }));
   },
 
   // Get client by ID
@@ -190,7 +195,12 @@ export const supabaseHelpers = {
       .single();
     
     if (error) throw error;
-    return data;
+    
+    // Map snake_case fields to camelCase for consistency
+    return {
+      ...data,
+      createdAt: data.created_at
+    };
   },
 
   // Create new client
@@ -388,7 +398,8 @@ export const supabaseHelpers = {
     return {
       ...client,
       attendance: attendanceMap,
-      paymentStatus: paymentStatus
+      paymentStatus: paymentStatus,
+      createdAt: client.created_at // Map snake_case to camelCase
     };
   },
 
