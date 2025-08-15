@@ -238,7 +238,7 @@ export default function Login() {
             
             <Button 
               type="submit" 
-              className="submit-button" 
+              className="login-submit-button" 
               disabled={isLoading}
             >
               {isLoading ? (isSignup ? "Creating account..." : "Signing in...") : (isSignup ? "Create account" : "Sign in")}

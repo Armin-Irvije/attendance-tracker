@@ -150,8 +150,8 @@
 }
 
 
-.submit-button {
-  width: 100%;
+.login-submit-button {
+  width: 125px;
   margin-left: 8rem;  
   margin-top: 0.5rem;
 }
