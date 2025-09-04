@@ -1,12 +1,13 @@
 // src/components/DailyAttendance.tsx
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getCurrentDateString } from '../lib/utils';
 
 interface DailyAttendanceProps {
   clients: any[];
 }
 
 const DailyAttendance = ({ clients }: DailyAttendanceProps) => {
-  const today = new Date().toISOString().split('T')[0];
+  const today = getCurrentDateString();
   // Map location to array of client names
   const attendance: Record<string, string[]> = {};
 
