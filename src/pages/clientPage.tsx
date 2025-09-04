@@ -884,6 +884,20 @@ Attendance System`;
           )}  
             {client.paymentStatus && client.paymentStatus[summary.monthName] === "Funding" ? "Mark as Not Funded" : "Mark as Funding"}
         </Button>
+        {/* Client Creation Date */}
+      {client.createdAt && (
+        <div className="client-creation-info">
+            <div className="creation-info-content">
+              <p className="creation-date-text">
+                <strong>Client since:</strong> {new Date(client.createdAt).toLocaleDateString('en-US', { 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric' 
+                })}
+              </p>
+            </div>
+        </div>
+      )}
       </div>
     </div>
   );

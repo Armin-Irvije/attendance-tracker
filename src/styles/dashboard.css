@@ -473,6 +473,46 @@ button:hover,
   opacity: 1;
 }
 
+.client-card.attended-2h {
+  border-color: #22c55e;
+  background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+}
+
+.client-card.attended-2h::before {
+  background: linear-gradient(90deg, #22c55e, #16a34a);
+  opacity: 1;
+}
+
+.client-card.attended-3h {
+  border-color: #16a34a;
+  background: linear-gradient(135deg, #dcfce7 0%, #ffffff 100%);
+}
+
+.client-card.attended-3h::before {
+  background: linear-gradient(90deg, #16a34a, #15803d);
+  opacity: 1;
+}
+
+.client-card.excused-absent {
+  border-color: #fbbf24;
+  background: linear-gradient(135deg, #fef3c7 0%, #ffffff 100%);
+}
+
+.client-card.excused-absent::before {
+  background: linear-gradient(90deg, #fbbf24, #f59e0b);
+  opacity: 1;
+}
+
+.client-card.unexcused-absent {
+  border-color: #ef4444;
+  background: linear-gradient(135deg, #fee2e2 0%, #ffffff 100%);
+}
+
+.client-card.unexcused-absent::before {
+  background: linear-gradient(90deg, #ef4444, #dc2626);
+  opacity: 1;
+}
+
 .client-card-content {
   display: flex;
   justify-content: space-between;

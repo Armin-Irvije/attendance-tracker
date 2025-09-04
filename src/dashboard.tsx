@@ -40,7 +40,10 @@ export default function Dashboard() {
   const [clients, setClients] = useState<Client[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [locations, setLocations] = useState<string[]>([]);
-  const [selectedLocation, setSelectedLocation] = useState<string>("All Locations");
+  const [selectedLocation, setSelectedLocation] = useState<string>(() => {
+    // Load from localStorage on component mount
+    return localStorage.getItem('selectedLocation') || "All Locations";
+  });
   const [searchTerm, setSearchTerm] = useState<string>('');
 
   // Load clients from Supabase
@@ -76,6 +79,12 @@ export default function Dashboard() {
   // Handle opening add client page
   const handleAddClientClick = () => {
     navigate('/add-client');
+  };
+
+  // Handle location filter change
+  const handleLocationChange = (location: string) => {
+    setSelectedLocation(location);
+    localStorage.setItem('selectedLocation', location);
   };
 
   // Handle client deletion
@@ -180,6 +189,30 @@ export default function Dashboard() {
     return client.paymentStatus?.[month] || "Not Funded";
   };
 
+  // Get attendance state for today to determine card styling
+  const getAttendanceState = (client: Client) => {
+    const todayDateStr = getCurrentDateString();
+    const attendanceRecord = client.attendance?.[todayDateStr];
+    
+    if (!attendanceRecord) {
+      return null; // No attendance record
+    }
+    
+    if (attendanceRecord.attended) {
+      if (attendanceRecord.hours === 2) {
+        return 'attended-2h';
+      } else if (attendanceRecord.hours === 3) {
+        return 'attended-3h';
+      } else {
+        return 'checked-in'; // Fallback for other attended states
+      }
+    } else if (attendanceRecord.excused) {
+      return 'excused-absent';
+    } else {
+      return 'unexcused-absent';
+    }
+  };
+
   const today = new Date();
   const todayDayName = today.toLocaleDateString("en-US", { weekday: "long" }).toLowerCase();
   const todayDateStr = getCurrentDateString();
@@ -249,7 +282,7 @@ export default function Dashboard() {
           <select
             className="select location-select"
             value={selectedLocation}
-            onChange={e => setSelectedLocation(e.target.value)}
+            onChange={e => handleLocationChange(e.target.value)}
           >
             {locations.map(location => (
               <option key={location} value={location}>{location}</option>
@@ -266,10 +299,12 @@ export default function Dashboard() {
       </div>
 
       <div className="clients-grid">
-        {sortedAndFilteredClients.map(client => (
+        {sortedAndFilteredClients.map(client => {
+          const attendanceState = getAttendanceState(client);
+          return (
           <Card
             key={client.id}
-            className={`client-card ${client.attendance && client.attendance[todayDateStr]?.attended ? 'checked-in' : ''}`}
+            className={`client-card ${attendanceState ? attendanceState : ''}`}
             onClick={() => handleClientClick(client)}
           >
             <CardContent className="client-card-content">
@@ -312,7 +347,8 @@ export default function Dashboard() {
               </button>
             </CardContent>
           </Card>
-        ))}
+          );
+        })}
 
         <Card
           className="add-client-card"
