@@ -45,11 +45,22 @@ export default function Dashboard() {
     return localStorage.getItem('selectedLocation') || "All Locations";
   });
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [userRole, setUserRole] = useState<string>('employee'); // Default to employee for security
+  const [userName, setUserName] = useState<string>('');
 
-  // Load clients from Supabase
+  // Load user role and clients from Supabase
   useEffect(() => {
-    const loadClients = async () => {
+    const loadUserAndClients = async () => {
       try {
+        // First, get the current user and their role
+        const user = await authHelpers.getCurrentUser();
+        if (user) {
+          const userData = await authHelpers.getUserRole(user.id);
+          setUserRole(userData.role);
+          setUserName(userData.name);
+        }
+
+        // Then load clients
         const clients = await supabaseHelpers.getClients();
         // Load attendance data for each client
         const clientsWithAttendance = await Promise.all(
@@ -66,14 +77,14 @@ export default function Dashboard() {
         const uniqueLocations = ["All Locations", ...Array.from(new Set(clientsWithAttendance.map((c: Client) => c.location).filter(Boolean))) as string[]];
         setLocations(uniqueLocations);
       } catch (error) {
-        console.error('Error loading clients:', error);
-        toast.error('Error loading clients');
+        console.error('Error loading user or clients:', error);
+        toast.error('Error loading data');
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadClients();
+    loadUserAndClients();
   }, []);
 
   // Handle opening add client page
@@ -87,9 +98,15 @@ export default function Dashboard() {
     localStorage.setItem('selectedLocation', location);
   };
 
-  // Handle client deletion
+  // Handle client deletion (admin only)
   const handleDeleteClient = async (clientId: string, event: React.MouseEvent) => {
     event.stopPropagation(); // Prevent triggering the client selection
+
+    // Check if user is admin
+    if (userRole !== 'admin') {
+      toast.error('Only administrators can delete clients');
+      return;
+    }
 
     // Confirm deletion
     if (window.confirm('Are you sure you want to delete this client?')) {
@@ -260,8 +277,9 @@ export default function Dashboard() {
       <header className="dashboard-header">
         <div className="header-content">
           <div>
-            <h1 className="dashboard-title">Client Management Dashboard</h1>
+            <h1 className="dashboard-title">Unified ESL Client Management Dashboard</h1>
             <p className="dashboard-subtitle">Manage your clients and view their attendance</p>
+            <p className="user-info">Welcome, {userName} ({userRole})</p>
           </div>
           <button
             onClick={handleLogout}
@@ -327,13 +345,15 @@ export default function Dashboard() {
                   </span>
                 </div>
               </div>
-              <button
-                className="client-delete-btn"
-                onClick={(e) => handleDeleteClient(client.id, e)}
-                title="Delete client"
-              >
-                <Trash2Icon className="trash-icon" />
-              </button>
+              {userRole === 'admin' && (
+                <button
+                  className="client-delete-btn"
+                  onClick={(e) => handleDeleteClient(client.id, e)}
+                  title="Delete client"
+                >
+                  <Trash2Icon className="trash-icon" />
+                </button>
+              )}
               <button
                 className={`check-in-button${!client.schedule[todayDayName]
                     ? ' check-in-faded' : client.attendance && client.attendance[todayDateStr]?.attended

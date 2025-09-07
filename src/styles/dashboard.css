@@ -28,6 +28,14 @@
   max-width: 800px;
 }
 
+.user-info {
+  font-size: 0.875rem;
+  opacity: 0.8;
+  margin-top: 0.25rem;
+  font-weight: 500;
+  color: #6b7280;
+}
+
 .logout-button {
   display: flex;
   align-items: center;
