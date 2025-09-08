@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Toaster } from "sonner";
-import { PlusIcon, CheckIcon, Trash2Icon, DollarSignIcon, XIcon, LogOut } from "lucide-react";
+import { PlusIcon, CheckIcon, Trash2Icon, DollarSignIcon, XIcon, LogOut, Users } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import './styles/dashboard.css';
 import { useNavigate } from 'react-router-dom';
@@ -149,6 +149,11 @@ export default function Dashboard() {
     }
   };
 
+  // Handle navigation to user management
+  const handleUserManagementClick = () => {
+    navigate('/user-management');
+  };
+
   // Handle client check-in with Supabase
   const handleCheckIn = async (client: Client, event: React.MouseEvent) => {
     event.stopPropagation(); // Prevent card click from navigating
@@ -281,14 +286,26 @@ export default function Dashboard() {
             <p className="dashboard-subtitle">Manage your clients and view their attendance</p>
             <p className="user-info">Welcome, {userName} ({userRole})</p>
           </div>
-          <button
-            onClick={handleLogout}
-            className="logout-button"
-            title="Logout"
-          >
-            <LogOut className="h-4 w-4" />
-            Logout
-          </button>
+          <div className="header-actions">
+            {userRole === 'admin' && (
+              <button
+                onClick={handleUserManagementClick}
+                className="user-management-button"
+                title="Manage Users"
+              >
+                <Users className="h-4 w-4" />
+                Manage Users
+              </button>
+            )}
+            <button
+              onClick={handleLogout}
+              className="logout-button"
+              title="Logout"
+            >
+              <LogOut className="h-4 w-4" />
+              Logout
+            </button>
+          </div>
         </div>
       </header>
 

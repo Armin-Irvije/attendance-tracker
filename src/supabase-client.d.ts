@@ -8,6 +8,8 @@ declare module './supabase-client.js' {
     getCurrentUser(): Promise<any>;
     getUserRole(userId: string): Promise<any>;
     getAuthUserWithRole(): Promise<any>;
+    getAllUsers(): Promise<any[]>;
+    deleteUser(userId: string): Promise<any>;
   };
   
   export const supabaseHelpers: {
