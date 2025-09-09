@@ -281,9 +281,9 @@ export default function Dashboard() {
 
       <header className="dashboard-header">
         <div className="header-content">
-          <div>
+          <div className="header-titles-container">
             <h1 className="dashboard-title">Unified ESL Client Management Dashboard</h1>
-            <p className="dashboard-subtitle">Manage your clients and view their attendance</p>
+            <p className="dashboard-subtitle">Manage your students and view their attendance</p>
             <p className="user-info">Welcome, {userName} ({userRole})</p>
           </div>
           <div className="header-actions">
@@ -294,7 +294,7 @@ export default function Dashboard() {
                 title="Manage Users"
               >
                 <Users className="h-4 w-4" />
-                Manage Users
+                Manage Employees
               </button>
             )}
             <button
