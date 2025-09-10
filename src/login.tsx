@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Clock } from "lucide-react";
 import { authHelpers } from './supabase-client';
-import './styles/Login.css';
+import './styles/login.css';
 
 export default function Login() {
   const [email, setEmail] = useState('');
