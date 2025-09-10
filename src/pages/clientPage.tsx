@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { ChevronRightIcon, ChevronLeftIcon, Trash2Icon } from "lucide-react";
 import { Card, CardHeader, CardDescription, CardTitle, CardContent } from "@/components/ui/card"
-import { PercentIcon, CalendarIcon, ClockIcon, BarChartIcon, CheckIcon, XIcon } from "lucide-react"
+import { PercentIcon, CalendarIcon, ClockIcon, CheckIcon, XIcon } from "lucide-react"
 import { useParams, useNavigate } from 'react-router-dom';
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -88,6 +88,8 @@ export default function ClientPage() {
   const [selectedDayIndex, setSelectedDayIndex] = useState<number | null>(null);
   const [strikes, setStrikes] = useState<number>(0);
   const [excusedAbsences, setExcusedAbsences] = useState<number>(0);
+  const [userRole, setUserRole] = useState<string>('employee'); // Default to employee for security
+  const [userName, setUserName] = useState<string>('');
 
   // Get the start of the week (Monday)
   function getWeekStart(date: Date): Date {
@@ -290,8 +292,18 @@ Attendance System`;
   };
 
   useEffect(() => {
-    const loadClient = async () => {
+    const loadUserAndClient = async () => {
       try {
+        // First, get the current user and their role
+        const { authHelpers } = await import('../supabase-client.js');
+        const user = await authHelpers.getCurrentUser();
+        if (user) {
+          const userData = await authHelpers.getUserRole(user.id);
+          setUserRole(userData.role);
+          setUserName(userData.name);
+        }
+
+        // Then load client
         const foundClient = await supabaseHelpers.getClientWithAttendance(clientId!);
         
         if (foundClient) {
@@ -303,14 +315,14 @@ Attendance System`;
           navigate('/dashboard');
         }
       } catch (error) {
-        console.error('Error loading client:', error);
+        console.error('Error loading user or client:', error);
         navigate('/dashboard');
       } finally {
         setIsLoading(false);
       }
     };
 
-    loadClient();
+    loadUserAndClient();
   }, [clientId, navigate]);
 
   // Calculate attendance summary for current month
@@ -476,6 +488,13 @@ Attendance System`;
 
   const handleDeleteClient = async () => {
     if (!client) return;
+    
+    // Check if user is admin
+    if (userRole !== 'admin') {
+      toast.error('Only administrators can delete clients');
+      return;
+    }
+    
     if (!window.confirm("Are you sure you want to delete this client? This action cannot be undone.")) return;
     
     try {
@@ -552,14 +571,19 @@ Attendance System`;
   return (
     <div className="client-page-container">
       <header className="client-header">
-        <h1 className="client-title">{client.name}'s Attendance</h1>
+        <div>
+          <h1 className="client-title">{client.name}'s Attendance</h1>
+          <p className="user-info">Welcome, {userName} ({userRole})</p>
+        </div>
         <div className="client-header-actions">
           <Button variant="outline" onClick={() => navigate('/dashboard')}>
             Back to Dashboard
           </Button>
-          <button className="delete-client-btn" title="Delete client" onClick={handleDeleteClient}>
-            <Trash2Icon className="trash-icon" />
-          </button>
+          {userRole === 'admin' && (
+            <button className="delete-client-btn" title="Delete client" onClick={handleDeleteClient}>
+              <Trash2Icon className="trash-icon" />
+            </button>
+          )}
         </div>
       </header>
 
@@ -872,10 +896,6 @@ Attendance System`;
       </div>
 
       <div className="action-buttons">
-        <Button variant="outline">
-          <BarChartIcon className="mr-2 h-4 w-4" />
-          Generate Report
-        </Button>
         <Button onClick={handlePayment}>
             {client.paymentStatus && client.paymentStatus[summary.monthName] === "Funding" ? (
             <XIcon className="mr-2 h-4 w-4" />
