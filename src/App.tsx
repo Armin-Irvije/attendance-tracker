@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Dashboard from './dashboard';
 import AddClient from './pages/AddClient';
 import ClientPage from './pages/clientPage';
+import UserManagement from './pages/UserManagement';
 import Login from './login';
 
 export default function App() {
@@ -33,6 +34,7 @@ export default function App() {
                     <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
                     <Route path="/add-client" element={isAuthenticated ? <AddClient /> : <Navigate to="/login" />} />
                     <Route path="/client/:clientId" element={isAuthenticated ? <ClientPage /> : <Navigate to="/login" />} />
+                    <Route path="/user-management" element={isAuthenticated ? <UserManagement /> : <Navigate to="/login" />} />
                   </Routes>
     </Router>
   );
