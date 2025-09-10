@@ -24,6 +24,7 @@ declare module './supabase-client.js' {
     updateClientPaymentStatus(clientId: string, month: string, status: string): Promise<any>;
     getClientWithAttendance(clientId: string): Promise<any>;
     clearAttendance(clientId: string, date: string): Promise<void>;
+    getLocationAttendanceReport(location: string): Promise<any[]>;
   };
 }
 

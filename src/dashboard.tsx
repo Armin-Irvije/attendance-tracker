@@ -3,12 +3,13 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Toaster } from "sonner";
-import { PlusIcon, CheckIcon, Trash2Icon, DollarSignIcon, XIcon, LogOut, Users } from "lucide-react";
+import { PlusIcon, CheckIcon, Trash2Icon, DollarSignIcon, XIcon, LogOut, Users, FileTextIcon } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import './styles/dashboard.css';
 import { useNavigate } from 'react-router-dom';
 import { toast } from "sonner";
 import DailyAttendance from "@/components/DailyAttendance";
+import AttendanceReport from "@/components/AttendanceReport";
 import { supabaseHelpers, authHelpers } from './supabase-client.js';
 import { getCurrentDateString } from './lib/utils';
 
@@ -47,6 +48,7 @@ export default function Dashboard() {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [userRole, setUserRole] = useState<string>('employee'); // Default to employee for security
   const [userName, setUserName] = useState<string>('');
+  const [showReport, setShowReport] = useState<boolean>(false);
 
   // Load user role and clients from Supabase
   useEffect(() => {
@@ -152,6 +154,16 @@ export default function Dashboard() {
   // Handle navigation to user management
   const handleUserManagementClick = () => {
     navigate('/user-management');
+  };
+
+  // Handle report generation
+  const handleGenerateReport = () => {
+    setShowReport(true);
+  };
+
+  // Handle report close
+  const handleCloseReport = () => {
+    setShowReport(false);
   };
 
   // Handle client check-in with Supabase
@@ -287,6 +299,14 @@ export default function Dashboard() {
             <p className="user-info">Welcome, {userName} ({userRole})</p>
           </div>
           <div className="header-actions">
+            <button
+              onClick={handleGenerateReport}
+              className="generate-report-button"
+              title="Generate Attendance Report"
+            >
+              <FileTextIcon className="h-4 w-4" />
+              Generate Report
+            </button>
             {userRole === 'admin' && (
               <button
                 onClick={handleUserManagementClick}
@@ -397,6 +417,14 @@ export default function Dashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Attendance Report Modal */}
+      {showReport && (
+        <AttendanceReport
+          location={selectedLocation}
+          onClose={handleCloseReport}
+        />
+      )}
     </div>
   );
 }

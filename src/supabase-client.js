@@ -492,6 +492,63 @@ export const supabaseHelpers = {
     return data;
   },
 
+  // Get attendance report for a specific location within the last 6 months
+  async getLocationAttendanceReport(location) {
+    // Calculate date 6 months ago
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+    const startDate = sixMonthsAgo.toISOString().split('T')[0];
+    
+    // Get current date
+    const endDate = new Date().toISOString().split('T')[0];
+    
+    console.log('Getting attendance report for location:', location, 'from', startDate, 'to', endDate);
+    
+    // Build the query
+    let query = supabase
+      .from('attendance_pacific_time')
+      .select(`
+        *,
+        clients!inner(
+          id,
+          name,
+          initials,
+          location
+        )
+      `)
+      .gte('date', startDate)
+      .lte('date', endDate)
+      .order('date', { ascending: false });
+    
+    // Filter by location if not "All Locations"
+    if (location && location !== "All Locations") {
+      query = query.eq('clients.location', location);
+    }
+    
+    const { data, error } = await query;
+    
+    if (error) {
+      console.error('Error getting location attendance report:', error);
+      throw error;
+    }
+    
+    // Transform the data to include client information
+    const reportData = data.map(record => ({
+      id: record.id,
+      clientId: record.client_id,
+      clientName: record.clients.name,
+      clientInitials: record.clients.initials,
+      date: record.date,
+      status: record.status,
+      hours: record.hours,
+      excused: record.excused,
+      createdAt: record.created_at
+    }));
+    
+    console.log('Attendance report data:', reportData);
+    return reportData;
+  },
+
   // Debug function to check timezone settings
   async debugTimezoneSettings() {
     console.log('=== Timezone Debug Information ===');
