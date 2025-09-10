@@ -1,5 +1,6 @@
 notes.txt
 todo.txt
+.env.local
 # Logs
 logs
 *.log
