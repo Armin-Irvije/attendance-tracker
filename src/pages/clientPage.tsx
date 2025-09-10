@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { ChevronRightIcon, ChevronLeftIcon, Trash2Icon } from "lucide-react";
 import { Card, CardHeader, CardDescription, CardTitle, CardContent } from "@/components/ui/card"
-import { PercentIcon, CalendarIcon, ClockIcon, BarChartIcon, CheckIcon, XIcon } from "lucide-react"
+import { PercentIcon, CalendarIcon, ClockIcon, CheckIcon, XIcon } from "lucide-react"
 import { useParams, useNavigate } from 'react-router-dom';
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -896,10 +896,6 @@ Attendance System`;
       </div>
 
       <div className="action-buttons">
-        <Button variant="outline">
-          <BarChartIcon className="mr-2 h-4 w-4" />
-          Generate Report
-        </Button>
         <Button onClick={handlePayment}>
             {client.paymentStatus && client.paymentStatus[summary.monthName] === "Funding" ? (
             <XIcon className="mr-2 h-4 w-4" />
